@@ -41,38 +41,74 @@ def load_summaries(path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def embed_and_store(collection, summaries):
+def embed_and_store_in_batches(collection, summaries, batch_size=100, resume=True):
     """
-    Generates embeddings for each book summary and stores them in the ChromaDB collection.
+    Generates embeddings for book summaries and stores them in ChromaDB in batches.
+    Resumes from where it left off if resume=True.
 
     Args:
-        collection (chromadb.api.models.Collection.Collection): The ChromaDB collection
-        to store embeddings.
+        collection (chromadb.api.models.Collection.Collection): The ChromaDB collection to store embeddings.
         summaries (dict): Dictionary mapping book titles to summaries.
+        batch_size (int): Number of books to process per batch.
+        resume (bool): If True, skip books already in the collection.
     """
     allowed_models = [
+        "text-embedding-3-small",
         "text-embedding-4o-mini",
         "text-embedding-4.1-mini",
         "text-embedding-4.1-nano"
     ]
-    embedding_model = "text-embedding-4o-mini"  # Default, change as needed
-
+    embedding_model = "text-embedding-3-small"  # or another valid embedding model
     if embedding_model not in allowed_models:
         raise ValueError(f"Embedding model '{embedding_model}' is not allowed. Allowed models: {allowed_models}")
 
-    for title, summary in summaries.items():
-        input_text = f"{title}: {summary}"
-        response = openai.embeddings.create(
-            input=input_text,
-            model=embedding_model
-        )
-        embedding = response.data[0].embedding
+    # Get already inserted IDs if resuming
+    existing_ids = set()
+    if resume:
+        try:
+            existing = collection.get()
+            for id_ in existing.get("ids", []):
+                existing_ids.add(id_)
+        except Exception:
+            pass
+
+    items = list(summaries.items())
+    total = len(items)
+    i = 0
+    while i < total:
+        batch = []
+        batch_titles = []
+        batch_ids = []
+        batch_metas = []
+        for j in range(i, min(i+batch_size, total)):
+            title, summary = items[j]
+            if resume and title in existing_ids:
+                continue
+            input_text = f"{title}: {summary}"
+            batch.append(input_text)
+            batch_titles.append(title)
+            batch_ids.append(title)
+            batch_metas.append({"title": title})
+        if not batch:
+            i += batch_size
+            continue
+        # Get embeddings for the batch
+        embeddings = []
+        for input_text in batch:
+            response = openai.embeddings.create(
+                input=input_text,
+                model=embedding_model
+            )
+            embeddings.append(response.data[0].embedding)
         collection.add(
-            documents=[input_text],
-            embeddings=[embedding],
-            metadatas=[{"title": title}],
-            ids=[title]
+            documents=batch,
+            embeddings=embeddings,
+            metadatas=batch_metas,
+            ids=batch_ids
         )
+        print(f"Inserted batch {i//batch_size+1} ({len(batch)} books)")
+        i += batch_size
+    print("All batches processed.")
 
 def main():
     """
@@ -81,7 +117,7 @@ def main():
     load_openai_key()  # Check and set API key
     collection = init_chroma()
     summaries = load_summaries(DATA_PATH)
-    embed_and_store(collection, summaries)
+    embed_and_store_in_batches(collection, summaries, batch_size=100, resume=True)
     print(f"Finished inserting {len(summaries)} books into ChromaDB.")
 
 if __name__ == "__main__":

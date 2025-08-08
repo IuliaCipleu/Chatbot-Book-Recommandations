@@ -4,34 +4,74 @@ Command-line chatbot for book recommendations.
 This script interacts with the user, retrieves book recommendations based on user input,
 and displays the recommended book's title and summary using ChromaDB and custom search utilities.
 """
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from chromadb.config import Settings
+
 import chromadb
 from search.retriever import search_books
 from search.summary_tool import get_summary_by_title
+import openai
 
-# Initialize ChromaDB client
-client = chromadb.Client(Settings(chroma_db_impl="duckdb+parquet", persist_directory="./chroma_db"))
+# Initialize ChromaDB client (new API)
+client = chromadb.PersistentClient(path="./chroma_db")
 collection = client.get_or_create_collection("books")
+
+def translate(text, target_language):
+    """
+    Translate text to the target language using OpenAI's GPT model.
+    """
+    if target_language == "english":
+        return text
+    prompt = f"Translate the following text to Romanian, preserving meaning and style.\n\nText: {text}"
+    response = openai.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content.strip()
 
 def main():
     """
     Runs the main chatbot loop, prompting the user for book preferences,
     searching for recommendations, and displaying results.
     """
+    # Language selection
+    language = ""
+    while language not in ["english", "romanian"]:
+        language = input("Choose your language (english/romanian): ").strip().lower()
+
     while True:
-        user_input = input("What kind of book are you looking for? (type 'exit' to quit): ")
+        prompt = "What kind of book are you looking for? (type 'exit' to quit): "
+        if language == "romanian":
+            prompt = "Ce fel de carte cauți? (scrie 'exit' pentru a ieși): "
+        user_input = input(prompt)
         if user_input.lower() == "exit":
             break
 
-        results = search_books(user_input, collection)
+        query = user_input
+        if language == "romanian":
+            # Translate Romanian input to English for search
+            query = translate(user_input, "english")
+
+        results = search_books(query, collection)
         if not results["ids"][0]:
-            print("No book found.")
+            msg = "No book found."
+            if language == "romanian":
+                msg = "Nu am găsit nicio carte."
+            print(msg)
             continue
 
         title = results["metadatas"][0][0]["title"]
-        print(f"\nRecommended Book: {title}")
-        print(f"\nSummary:\n{get_summary_by_title(title)}\n")
+        summary = get_summary_by_title(title)
+        if language == "romanian":
+            title = translate(title, "romanian")
+            summary = translate(summary, "romanian")
+            print(f"\nCarte recomandată: {title}")
+            print(f"\nRezumat:\n{summary}\n")
+        else:
+            print(f"\nRecommended Book: {title}")
+            print(f"\nSummary:\n{summary}\n")
 
 if __name__ == "__main__":
     main()

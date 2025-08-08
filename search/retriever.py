@@ -2,8 +2,11 @@
 This module provides a function to search for relevant books in a ChromaDB collection using OpenAI
 embeddings.
 """
+import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import openai
+from utils.openai_config import load_openai_key
 
 
 def search_books(query, collection, top_k=1, model="text-embedding-3-small"):
@@ -22,14 +25,16 @@ def search_books(query, collection, top_k=1, model="text-embedding-3-small"):
     """
     # Ensure the OpenAI API key is set
     if not openai.api_key:
-        openai.api_key = os.getenv("OPENAI_API_KEY")
+        load_openai_key()
         if not openai.api_key:
             raise ValueError("OpenAI API key is not set.")
-    response = openai.Embedding.create(
+
+    # Use the new OpenAI API for embeddings (openai>=1.0.0)
+    response = openai.embeddings.create(
         input=query,
         model=model
     )
-    embedding = response["data"][0]["embedding"]
+    embedding = response.data[0].embedding
 
     # ChromaDB's query method may expect 'query_embeddings' or 'query_vector'
     return collection.query(
