@@ -5,10 +5,13 @@ This script loads book summaries from a JSON file, generates embeddings for each
 using the OpenAI API, and stores the embeddings along with metadata in a ChromaDB database.
 """
 
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import json
 import openai
 import chromadb
-from chromadb.config import Settings
 from utils.openai_config import load_openai_key
 
 DATA_PATH = "data/book_summaries.json"
@@ -22,10 +25,7 @@ def init_chroma():
     Returns:
         chromadb.api.models.Collection.Collection: The ChromaDB collection object.
     """
-    chroma_client = chromadb.Client(Settings(
-        chroma_db_impl="duckdb+parquet",
-        persist_directory=CHROMA_DIR
-    ))
+    chroma_client = chromadb.PersistentClient(path=CHROMA_DIR)
     return chroma_client.get_or_create_collection(COLLECTION_NAME)
 
 def load_summaries(path):
@@ -50,15 +50,23 @@ def embed_and_store(collection, summaries):
         to store embeddings.
         summaries (dict): Dictionary mapping book titles to summaries.
     """
+    allowed_models = [
+        "text-embedding-4o-mini",
+        "text-embedding-4.1-mini",
+        "text-embedding-4.1-nano"
+    ]
+    embedding_model = "text-embedding-4o-mini"  # Default, change as needed
+
+    if embedding_model not in allowed_models:
+        raise ValueError(f"Embedding model '{embedding_model}' is not allowed. Allowed models: {allowed_models}")
+
     for title, summary in summaries.items():
         input_text = f"{title}: {summary}"
-
-        response = openai.Embedding.create(
+        response = openai.embeddings.create(
             input=input_text,
-            model="text-embedding-3-small"
+            model=embedding_model
         )
-        embedding = response["data"][0]["embedding"]
-
+        embedding = response.data[0].embedding
         collection.add(
             documents=[input_text],
             embeddings=[embedding],

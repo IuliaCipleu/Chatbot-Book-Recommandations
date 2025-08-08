@@ -205,3 +205,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Ignore sensitive or generated data files
+data/bad_words.json
+
+# Ignore all files in chroma_db except chroma.sqlite3
+chroma_db/*
+!chroma_db/chroma.sqlite3

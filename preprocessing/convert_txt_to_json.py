@@ -40,4 +40,4 @@ def parse_cmu_book_summary(txt_file_path, output_json_path, max_books=1000):
     print(f"Saved {len(book_dict)} book summaries to {output_json_path}")
 
 # Example usage:
-parse_cmu_book_summary("dataset/booksummaries.txt", "dataset/book_summaries.json", max_books=16559)
+parse_cmu_book_summary("data/booksummaries.txt", "data/book_summaries.json", max_books=1000)
