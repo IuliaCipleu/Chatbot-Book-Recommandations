@@ -1,5 +1,8 @@
+"""
+This script parses the CMU Book Summary Dataset and creates a JSON mapping from book
+titles to summaries.
+"""
 import json
-import os
 
 def parse_cmu_book_summary(txt_file_path, output_json_path, max_books=1000):
     """
@@ -33,7 +36,6 @@ def parse_cmu_book_summary(txt_file_path, output_json_path, max_books=1000):
     # Write to JSON
     with open(output_json_path, "w", encoding="utf-8") as json_out:
         json.dump(book_dict, json_out, indent=2, ensure_ascii=False)
-        
 
     print(f"Saved {len(book_dict)} book summaries to {output_json_path}")
 
