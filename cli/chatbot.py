@@ -1,27 +1,26 @@
-"""
-Command-line chatbot for book recommendations.
-
-This script interacts with the user, retrieves book recommendations based on user input,
-and displays the recommended book's title and summary using ChromaDB and custom search utilities.
-"""
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-
 import chromadb
 from search.retriever import search_books
 from search.summary_tool import get_summary_by_title
+from utils.openai_config import load_openai_key
+from utils.image_generator import generate_image_from_summary
 import openai
 
-# Initialize ChromaDB client (new API)
+# Initialize ChromaDB client
 client = chromadb.PersistentClient(path="./chroma_db")
 collection = client.get_or_create_collection("books")
 
+EXCLUSION_KEYWORDS = {
+    "child": {"violence", "drugs", "sex", "death", "abuse"},
+    "teen": {"graphic sex", "heavy violence"},
+    "technical": {"fairy tale", "fantasy", "magic"},
+    "adult": set(),
+}
+
 def translate(text, target_language):
-    """
-    Translate text to the target language using OpenAI's GPT model.
-    """
     if target_language == "english":
         return text
     prompt = f"Translate the following text to Romanian, preserving meaning and style.\n\nText: {text}"
@@ -31,12 +30,25 @@ def translate(text, target_language):
     )
     return response.choices[0].message.content.strip()
 
+def infer_reader_profile(user_input: str) -> str:
+    prompt = (
+        "Classify the target reader of this book request into one of the following categories: "
+        "child, teen, adult, technical. If uncertain, respond with 'unknown'.\n\n"
+        f"Book request: \"{user_input}\"\n\n"
+        "Category:"
+    )
+    response = openai.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content.strip().lower()
+
+def is_appropriate(summary, profile):
+    banned = EXCLUSION_KEYWORDS.get(profile, set())
+    return not any(word in summary.lower() for word in banned)
+
 def main():
-    """
-    Runs the main chatbot loop, prompting the user for book preferences,
-    searching for recommendations, and displaying results.
-    """
-    # Language selection
+    load_openai_key()
     language = ""
     while language not in ["english", "romanian"]:
         language = input("Choose your language (english/romanian): ").strip().lower()
@@ -51,12 +63,21 @@ def main():
 
         query = user_input
         if language == "romanian":
-            # Translate Romanian input to English for search
             query = translate(user_input, "english")
+
+        # STEP 1: Infer role
+        role = infer_reader_profile(user_input)
+        if role not in EXCLUSION_KEYWORDS:
+            clarify_prompt = "Who is the book for? (child, teen, adult, technical): "
+            if language == "romanian":
+                clarify_prompt = "Pentru cine este cartea? (child, teen, adult, technical): "
+            role = input(clarify_prompt).strip().lower()
+            if role not in EXCLUSION_KEYWORDS:
+                role = "adult"  # fallback
 
         found = False
         top_k = 1
-        max_k = 100  # Try up to 10 results
+        max_k = 100
         while not found and top_k <= max_k:
             results = search_books(query, collection, top_k=top_k)
             ids = results["ids"][0]
@@ -64,7 +85,7 @@ def main():
             for idx, book_id in enumerate(ids):
                 title = metadatas[idx]["title"]
                 summary = get_summary_by_title(title)
-                if summary and summary.strip():
+                if summary and summary.strip() and is_appropriate(summary, role):
                     found = True
                     break
             if not found:
@@ -73,7 +94,7 @@ def main():
         if not found:
             msg = "No book with summary found."
             if language == "romanian":
-                msg = "Nu am găsit nicio carte cu rezumat."
+                msg = "Nu am găsit nicio carte cu rezumat potrivit."
             print(msg)
             continue
 
@@ -85,6 +106,14 @@ def main():
         else:
             print(f"\nRecommended Book: {title}")
             print(f"\nSummary:\n{summary}\n")
+            
+        image_url = generate_image_from_summary(title, summary)
+        if image_url:
+            if language == "romanian":
+                print(f"📷 Imagine generată: {image_url}")
+            else:
+                print(f"📷 Generated Image: {image_url}")
+
 
 if __name__ == "__main__":
     main()
