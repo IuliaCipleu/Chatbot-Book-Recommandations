@@ -14,7 +14,10 @@ import openai
 import chromadb
 from utils.openai_config import load_openai_key
 
-DATA_PATH = "data/book_summaries.json"
+import glob
+
+# Folder containing JSON batches
+BATCHES_DIR = "data/batches"
 CHROMA_DIR = "./chroma_db"
 COLLECTION_NAME = "books"
 
@@ -28,18 +31,23 @@ def init_chroma():
     chroma_client = chromadb.PersistentClient(path=CHROMA_DIR)
     return chroma_client.get_or_create_collection(COLLECTION_NAME)
 
+
 def load_summaries(path):
     """
     Loads book summaries from a JSON file.
-
     Args:
         path (str): Path to the JSON file containing book summaries.
-
     Returns:
         dict: A dictionary mapping book titles to summaries.
     """
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+def get_all_batch_files(batches_dir):
+    """
+    Returns a sorted list of all JSON batch files in the given directory.
+    """
+    return sorted(glob.glob(os.path.join(batches_dir, "book_summaries_batch_*.json")))
 
 def embed_and_store_in_batches(collection, summaries, batch_size=100, resume=True):
     """
@@ -116,9 +124,14 @@ def main():
     """
     load_openai_key()  # Check and set API key
     collection = init_chroma()
-    summaries = load_summaries(DATA_PATH)
-    embed_and_store_in_batches(collection, summaries, batch_size=100, resume=True)
-    print(f"Finished inserting {len(summaries)} books into ChromaDB.")
+    batch_files = get_all_batch_files(BATCHES_DIR)
+    total_books = 0
+    for batch_file in batch_files:
+        print(f"Processing {batch_file}...")
+        summaries = load_summaries(batch_file)
+        embed_and_store_in_batches(collection, summaries, batch_size=100, resume=True)
+        total_books += len(summaries)
+    print(f"Finished inserting {total_books} books from all batches into ChromaDB.")
 
 if __name__ == "__main__":
     main()
