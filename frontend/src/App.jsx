@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { FaMicrophone } from "react-icons/fa";
 import "./App.css";
 import LanguageSelector from "./components/LanguageSelector";
 
@@ -44,15 +45,32 @@ function App() {
         ))}
       </div>
 
-      <div className="input-area">
+      <div className="input-area" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <input
           type="text"
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type your question here..."
+          style={{ flex: 1 }}
         />
         <button onClick={handleSend}>Send</button>
+        <button
+          style={{
+            background: '#fff',
+            border: '1px solid #ccc',
+            borderRadius: 4,
+            padding: 8,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          title="Speak (coming soon)"
+          disabled
+        >
+          <FaMicrophone size={20} color="#888" />
+        </button>
       </div>
     </div>
   );
