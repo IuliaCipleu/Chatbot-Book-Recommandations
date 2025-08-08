@@ -1,15 +1,25 @@
 """
-Splits a large book summaries .txt file into multiple JSON files, each containing up to batch_size books.
+Splits a large book summaries .txt file into multiple JSON files, each containing up to
+batch_size books.
 """
 import json
 import os
 
 def split_txt_to_json_batches(txt_file_path, output_dir, batch_size=100):
+    """
+    Splits a large book summaries .txt file into multiple JSON files, each containing up to
+    batch_size books.
+
+    Args:
+        txt_file_path (str): Path to the input .txt file with book summaries.
+        output_dir (str): Directory where the JSON batch files will be saved.
+        batch_size (int, optional): Number of books per batch file. Defaults to 100.
+    """
     os.makedirs(output_dir, exist_ok=True)
     batch = {}
     batch_num = 1
     with open(txt_file_path, "r", encoding="utf-8") as f:
-        for line_num, line in enumerate(f, 1):
+        for _, line in enumerate(f, 1):
             parts = line.strip().split("\t")
             if len(parts) < 7:
                 continue

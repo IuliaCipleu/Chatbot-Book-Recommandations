@@ -54,16 +54,29 @@ def main():
             # Translate Romanian input to English for search
             query = translate(user_input, "english")
 
-        results = search_books(query, collection)
-        if not results["ids"][0]:
-            msg = "No book found."
+        found = False
+        top_k = 1
+        max_k = 100  # Try up to 10 results
+        while not found and top_k <= max_k:
+            results = search_books(query, collection, top_k=top_k)
+            ids = results["ids"][0]
+            metadatas = results["metadatas"][0]
+            for idx, book_id in enumerate(ids):
+                title = metadatas[idx]["title"]
+                summary = get_summary_by_title(title)
+                if summary and summary.strip():
+                    found = True
+                    break
+            if not found:
+                top_k += 1
+
+        if not found:
+            msg = "No book with summary found."
             if language == "romanian":
-                msg = "Nu am găsit nicio carte."
+                msg = "Nu am găsit nicio carte cu rezumat."
             print(msg)
             continue
 
-        title = results["metadatas"][0][0]["title"]
-        summary = get_summary_by_title(title)
         if language == "romanian":
             title = translate(title, "romanian")
             summary = translate(summary, "romanian")

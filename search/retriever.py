@@ -1,17 +1,22 @@
 """
-This module provides a function to search for relevant books in a ChromaDB collection using OpenAI
-embeddings.
+This module provides retrieval functionality for a Retrieval-Augmented Generation (RAG) pipeline.
+It enables searching for relevant books in a ChromaDB vector database using OpenAI embeddings.
+The retrieved results can be used as context for generative models to enhance book recommendations
+or responses.
 """
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import openai
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.openai_config import load_openai_key
 
 
 def search_books(query, collection, top_k=1, model="text-embedding-3-small"):
     """
-    Searches for books in the ChromaDB collection that are most relevant to the user's query.
+    Retrieves the most relevant books from the ChromaDB vector database for a given user query
+    using OpenAI embeddings. This function is the retrieval step in a Retrieval-Augmented
+    Generation (RAG) workflow, where the retrieved documents can be provided as context to a
+    language model for enhanced, context-aware responses or recommendations.
 
     Args:
         query (str): The user's search query.
@@ -21,7 +26,8 @@ def search_books(query, collection, top_k=1, model="text-embedding-3-small"):
         Defaults to "text-embedding-3-small".
 
     Returns:
-        dict: The search results from the ChromaDB collection.
+        dict: The search results from the ChromaDB collection, suitable for use as context in a
+        RAG pipeline.
     """
     # Ensure the OpenAI API key is set
     if not openai.api_key:

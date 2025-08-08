@@ -10,11 +10,12 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import json
+import glob
 import openai
 import chromadb
 from utils.openai_config import load_openai_key
 
-import glob
+
 
 # Folder containing JSON batches
 BATCHES_DIR = "data/batches"
@@ -55,7 +56,8 @@ def embed_and_store_in_batches(collection, summaries, batch_size=100, resume=Tru
     Resumes from where it left off if resume=True.
 
     Args:
-        collection (chromadb.api.models.Collection.Collection): The ChromaDB collection to store embeddings.
+        collection (chromadb.api.models.Collection.Collection): The ChromaDB collection to
+        store embeddings.
         summaries (dict): Dictionary mapping book titles to summaries.
         batch_size (int): Number of books to process per batch.
         resume (bool): If True, skip books already in the collection.
@@ -68,7 +70,8 @@ def embed_and_store_in_batches(collection, summaries, batch_size=100, resume=Tru
     ]
     embedding_model = "text-embedding-3-small"  # or another valid embedding model
     if embedding_model not in allowed_models:
-        raise ValueError(f"Embedding model '{embedding_model}' is not allowed. Allowed models: {allowed_models}")
+        raise ValueError(f"Embedding model '{embedding_model}' is not allowed.",
+                         f"Allowed models: {allowed_models}")
 
     # Get already inserted IDs if resuming
     existing_ids = set()
@@ -77,7 +80,7 @@ def embed_and_store_in_batches(collection, summaries, batch_size=100, resume=Tru
             existing = collection.get()
             for id_ in existing.get("ids", []):
                 existing_ids.add(id_)
-        except Exception:
+        except (AttributeError, KeyError):
             pass
 
     items = list(summaries.items())

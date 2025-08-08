@@ -18,7 +18,7 @@ def load_bad_words(json_path="data/bad_words.json"):
     try:
         with open(json_path, "r", encoding="utf-8") as f:
             return set(json.load(f))
-    except Exception as e:
+    except (FileNotFoundError, json.JSONDecodeError) as e:
         print(f"Failed to load bad words list: {e}")
         return set()
 
