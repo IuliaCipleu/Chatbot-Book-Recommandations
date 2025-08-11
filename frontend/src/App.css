@@ -1,3 +1,157 @@
+.login-page {
+  max-width: 420px;
+  margin: 90px auto 0 auto;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(7px);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px #0003, 0 1.5px 8px #1976d222;
+  padding: 40px 36px 32px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1.5px solid #e0e0e0;
+}
+
+.login-page h2 {
+  margin-bottom: 28px;
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: #1976d2;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.login-page .login-icon {
+  font-size: 2.2rem;
+  color: #4caf50;
+  vertical-align: middle;
+}
+
+.login-page form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.login-page input[type="text"],
+.login-page input[type="password"] {
+  padding: 14px;
+  border-radius: 10px;
+  border: 1.5px solid #bdbdbd;
+  font-size: 1.08rem;
+  background: #f7fafc;
+  transition: border 0.2s;
+}
+.login-page input[type="text"]:focus,
+.login-page input[type="password"]:focus {
+  border: 1.5px solid #1976d2;
+  outline: none;
+}
+
+.login-page button[type="submit"] {
+  padding: 14px 0;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #4caf50 60%, #1976d2 100%);
+  color: white;
+  border: none;
+  font-size: 1.08rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+  box-shadow: 0 2px 8px #1976d222;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.login-page button[type="submit"]:hover {
+  background: linear-gradient(90deg, #43a047 60%, #1565c0 100%);
+  box-shadow: 0 4px 16px #1976d244;
+}
+
+.login-page p {
+  margin-top: 16px;
+  font-size: 1.01rem;
+  color: #444;
+}
+
+.login-page button {
+  background: none;
+  border: none;
+  color: #1976d2;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 1rem;
+  padding: 0 4px;
+  transition: color 0.2s;
+}
+.login-page button:hover {
+  color: #4caf50;
+}
+/* Login/Register page styling to match chat theme */
+.login-page {
+  max-width: 400px;
+  margin: 80px auto 0 auto;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(5px);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px #0002;
+  padding: 32px 28px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-page h2 {
+  margin-bottom: 24px;
+}
+
+.login-page form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.login-page input[type="text"],
+.login-page input[type="password"] {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+}
+
+.login-page button[type="submit"] {
+  padding: 12px 0;
+  border-radius: 8px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+.login-page button[type="submit"]:hover {
+  background-color: #45a049;
+}
+
+.login-page p {
+  margin-top: 12px;
+  font-size: 0.98rem;
+}
+
+.login-page button {
+  background: none;
+  border: none;
+  color: #1976d2;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 1rem;
+  padding: 0 4px;
+}
 #root {
   max-width: 1280px;
   margin: 0 auto;

@@ -1,10 +1,10 @@
 import React from "react";
+import { FaBookOpen } from "react-icons/fa";
+
 export default function LoginRegisterPage({ onLogin }) {
-  // Simple login/register form placeholder
   return (
     <div className="login-page">
-      <h2>Login or Register</h2>
-      {/* Add login/register form here */}
+      <h2><span className="login-icon"><FaBookOpen /></span> Smart Librarian Login</h2>
       <form onSubmit={e => { e.preventDefault(); onLogin(); }}>
         <input type="text" placeholder="Username or Email" required />
         <input type="password" placeholder="Password" required />
