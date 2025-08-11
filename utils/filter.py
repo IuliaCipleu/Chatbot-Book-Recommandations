@@ -5,6 +5,7 @@ of bad words.
 import json
 import string
 import openai
+import re
 
 from utils.openai_config import load_openai_key
 
@@ -89,7 +90,7 @@ def sanitize_for_image_prompt(text):
     - Truncate to 300 chars
     - Remove explicit/triggering phrases
     """
-    import re
+
     # Remove quotes and special characters
     sanitized = text.replace('"', '').replace("'", "")
     sanitized = re.sub(r'[^\w\s,.!?-]', '', sanitized)
