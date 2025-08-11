@@ -81,7 +81,12 @@ def test_main_flow_voice(monkeypatch):
         "yes",      # voice input
         "exit"      # exit
     ])
-    monkeypatch.setattr(builtins, "input", lambda *a, **k: next(inputs))
+    def fake_input(*a, **k):
+        try:
+            return next(inputs)
+        except StopIteration:
+            return "exit"
+    monkeypatch.setattr(builtins, "input", fake_input)
     monkeypatch.setattr(chatbot, "load_openai_key", lambda: None)
     monkeypatch.setattr(chatbot, "listen_with_whisper", lambda **kwargs: "A book for a teen about science")
     monkeypatch.setattr(chatbot, "infer_reader_profile", lambda x: "teen")
@@ -106,7 +111,12 @@ def test_main_flow_no_summary(monkeypatch):
         "A book for a child about courage",  # user input
         "exit"      # exit
     ])
-    monkeypatch.setattr(builtins, "input", lambda *a, **k: next(inputs))
+    def fake_input(*a, **k):
+        try:
+            return next(inputs)
+        except StopIteration:
+            return "exit"
+    monkeypatch.setattr(builtins, "input", fake_input)
     monkeypatch.setattr(chatbot, "load_openai_key", lambda: None)
     monkeypatch.setattr(chatbot, "infer_reader_profile", lambda x: "child")
     monkeypatch.setattr(chatbot, "search_books", lambda q, c, top_k=1: {
@@ -127,7 +137,12 @@ def test_main_flow_romanian(monkeypatch):
         "O carte pentru copii despre curaj",  # user input
         "exit"       # exit
     ])
-    monkeypatch.setattr(builtins, "input", lambda *a, **k: next(inputs))
+    def fake_input(*a, **k):
+        try:
+            return next(inputs)
+        except StopIteration:
+            return "exit"
+    monkeypatch.setattr(builtins, "input", fake_input)
     monkeypatch.setattr(chatbot, "load_openai_key", lambda: None)
     monkeypatch.setattr(chatbot, "infer_reader_profile", lambda x: "child")
     monkeypatch.setattr(chatbot, "search_books", lambda q, c, top_k=1: {
