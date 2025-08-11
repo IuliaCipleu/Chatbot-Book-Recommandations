@@ -1,19 +1,12 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from search.retriever import search_books
 from search.summary_tool import get_summary_by_title
 from utils.openai_config import load_openai_key
 from utils.voice_input import listen_with_whisper
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-@app.post("/voice")
-async def voice(request: Request):
-    data = await request.json()
-    language = data.get("language", "english")
-    # Map frontend language to whisper language code
-    lang_code = "ro" if language == "romanian" else "en"
-    text = listen_with_whisper(language=lang_code)
-    return JSONResponse({"text": text})
 import chromadb
+
 
 app = FastAPI()
 
@@ -30,6 +23,7 @@ client = chromadb.PersistentClient(path="./chroma_db")
 collection = client.get_or_create_collection("books")
 load_openai_key()
 
+
 @app.post("/recommend")
 async def recommend(request: Request):
     data = await request.json()
@@ -45,3 +39,12 @@ async def recommend(request: Request):
         if summary and summary.strip() and summary != "Summary not found.":
             return {"title": title, "summary": summary}
     return {"error": "No suitable book found."}
+
+@app.post("/voice")
+async def voice(request: Request):
+    data = await request.json()
+    language = data.get("language", "english")
+    # Map frontend language to whisper language code
+    lang_code = "ro" if language == "romanian" else "en"
+    text = listen_with_whisper(language=lang_code)
+    return JSONResponse({"text": text})
