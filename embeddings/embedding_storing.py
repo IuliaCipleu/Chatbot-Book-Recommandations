@@ -50,7 +50,7 @@ def get_all_batch_files(batches_dir):
     """
     return sorted(glob.glob(os.path.join(batches_dir, "book_summaries_batch_*.json")))
 
-def embed_and_store_in_batches(collection, summaries, batch_size=100, resume=True):
+def embed_and_store_in_batches(collection, summaries, batch_size=100, resume=True, embedding_model="text-embedding-3-small"):
     """
     Generates embeddings for book summaries and stores them in ChromaDB in batches.
     Resumes from where it left off if resume=True.
@@ -68,7 +68,6 @@ def embed_and_store_in_batches(collection, summaries, batch_size=100, resume=Tru
         "text-embedding-4.1-mini",
         "text-embedding-4.1-nano"
     ]
-    embedding_model = "text-embedding-3-small"  # or another valid embedding model
     if embedding_model not in allowed_models:
         raise ValueError(f"Embedding model '{embedding_model}' is not allowed.",
                          f"Allowed models: {allowed_models}")

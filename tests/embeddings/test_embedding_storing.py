@@ -67,18 +67,5 @@ def test_embed_and_store_in_batches_invalid_model(monkeypatch):
         def __init__(self, emb):
             self.data = [MagicMock(embedding=emb)]
     monkeypatch.setattr(es.openai.embeddings, "create", lambda **kwargs: DummyResp([1.0, 2.0, 3.0]))
-    # Patch allowed_models in the function's global scope
-    orig_embed_and_store = es.embed_and_store_in_batches
-    def fake_embed_and_store(*args, **kwargs):
-        # Patch allowed_models to only allow a different model
-        orig_globals = orig_embed_and_store.__globals__
-        orig_allowed = orig_globals["allowed_models"] if "allowed_models" in orig_globals else None
-        orig_globals["allowed_models"] = ["other-model"]
-        try:
-            return orig_embed_and_store(*args, **kwargs)
-        finally:
-            if orig_allowed is not None:
-                orig_globals["allowed_models"] = orig_allowed
-    monkeypatch.setattr(es, "embed_and_store_in_batches", fake_embed_and_store)
     with pytest.raises(ValueError):
-        es.embed_and_store_in_batches(collection, summaries, batch_size=1, resume=False)
+        es.embed_and_store_in_batches(collection, summaries, batch_size=1, resume=False, embedding_model="not-a-real-model")
