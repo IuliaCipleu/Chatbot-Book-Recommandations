@@ -80,3 +80,25 @@ def infer_reader_profile(user_input: str) -> str:
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content.strip().lower()
+
+def sanitize_for_image_prompt(text):
+    """
+    Sanitize text for image generation prompts:
+    - Remove or mask offensive/bad words
+    - Remove quotes and special characters
+    - Truncate to 300 chars
+    - Remove explicit/triggering phrases
+    """
+    import re
+    # Remove quotes and special characters
+    sanitized = text.replace('"', '').replace("'", "")
+    sanitized = re.sub(r'[^\w\s,.!?-]', '', sanitized)
+    # Remove bad words
+    for bad in BAD_WORDS:
+        sanitized = re.sub(rf'\\b{re.escape(bad)}\\b', '[filtered]', sanitized, flags=re.IGNORECASE)
+    # Remove explicit/triggering phrases (basic)
+    sanitized = re.sub(r'(sex|violence|abuse|drugs|death)', '[filtered]', sanitized, flags=re.IGNORECASE)
+    # Truncate
+    if len(sanitized) > 300:
+        sanitized = sanitized[:297] + '...'
+    return sanitized

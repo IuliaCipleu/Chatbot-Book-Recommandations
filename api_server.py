@@ -6,7 +6,7 @@ from search.summary_tool import get_summary_by_title
 from utils.openai_config import load_openai_key
 from utils.voice_input import listen_with_whisper
 from utils.image_generator import generate_image_from_summary
-from utils.filter import is_appropriate, infer_reader_profile
+from utils.filter import is_appropriate, infer_reader_profile, sanitize_for_image_prompt
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -60,8 +60,10 @@ async def recommend(request: Request):
                 else:
                     title_en = title
                     summary_en = summary
+                # Sanitize summary for DALL·E prompt
+                sanitized_summary = sanitize_for_image_prompt(summary_en)
                 # Add user type context to the image prompt
-                image_prompt = summary_en
+                image_prompt = sanitized_summary
                 if role == "child":
                     image_prompt += " (colorful, cartoonish, friendly, for children, illustration style)"
                 elif role == "teen":

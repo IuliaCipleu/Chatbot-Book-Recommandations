@@ -174,20 +174,20 @@ function App() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: listening ? '0 0 0 4px #ff000055, 0 0 8px 4px #ff000099' : undefined,
-            animation: listening ? 'pulse 1s infinite' : undefined
+            boxShadow: listening ? '0 0 0 4px #4fc3f755, 0 0 8px 4px #1976d299' : undefined,
+            animation: listening ? 'pulse-blue 1s infinite' : undefined
           }}
           title={listening ? (language === "romanian" ? "Ascultă..." : "Listening...") : "Speak"}
           onClick={handleMic}
         >
-          <FaMicrophone size={20} color={listening ? "#e53935" : "#888"} />
+          <FaMicrophone size={20} color={listening ? "#1976d2" : "#888"} />
         </button>
-        {/* Add keyframes for pulse animation */}
+        {/* Add keyframes for blue pulse animation */}
         <style>{`
-          @keyframes pulse {
-            0% { box-shadow: 0 0 0 4px #ff000055, 0 0 8px 4px #ff000099; }
-            50% { box-shadow: 0 0 0 8px #ff000022, 0 0 16px 8px #ff000044; }
-            100% { box-shadow: 0 0 0 4px #ff000055, 0 0 8px 4px #ff000099; }
+          @keyframes pulse-blue {
+            0% { box-shadow: 0 0 0 4px #4fc3f755, 0 0 8px 4px #1976d299; }
+            50% { box-shadow: 0 0 0 8px #4fc3f722, 0 0 16px 8px #1976d244; }
+            100% { box-shadow: 0 0 0 4px #4fc3f755, 0 0 8px 4px #1976d299; }
           }
         `}</style>
       </div>
