@@ -49,11 +49,14 @@ function App() {
       const data = await res.json();
       let botResponse;
       if (data.error) {
-        botResponse = data.error;
+        botResponse = { text: data.error };
       } else {
-        botResponse = `Recommended Book: ${data.title}\n\nSummary: ${data.summary}`;
+        botResponse = {
+          text: `Recommended Book: ${data.title}\n\nSummary: ${data.summary}`,
+          image_url: data.image_url
+        };
       }
-      setMessages((prev) => [...prev, { role: "bot", text: botResponse }]);
+      setMessages((prev) => [...prev, { role: "bot", ...botResponse }]);
     } catch (err) {
       setMessages((prev) => [...prev, { role: "bot", text: "Server error." }]);
     }
@@ -77,6 +80,11 @@ function App() {
           >
             <strong>{msg.role === "user" ? "🤓 You" : "🤖 Bot"}:</strong>{" "}
             {msg.text}
+            {msg.image_url && (
+              <div style={{ marginTop: 12 }}>
+                <img src={msg.image_url} alt="Book cover" style={{ maxWidth: 320, borderRadius: 8, boxShadow: '0 2px 8px #0002' }} />
+              </div>
+            )}
           </div>
         ))}
       </div>

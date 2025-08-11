@@ -88,8 +88,6 @@ body {
 
 .chat-message.bot {
   background: #e6e6e6;
-  align-self: flex-start;
-  margin-right: auto;
 }
 
 .input-area {

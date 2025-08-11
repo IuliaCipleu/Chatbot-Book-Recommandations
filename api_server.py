@@ -2,6 +2,7 @@ from search.retriever import search_books
 from search.summary_tool import get_summary_by_title
 from utils.openai_config import load_openai_key
 from utils.voice_input import listen_with_whisper
+from utils.image_generator import generate_image_from_summary
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -37,7 +38,18 @@ async def recommend(request: Request):
         title = metadatas[idx]["title"]
         summary = get_summary_by_title(title)
         if summary and summary.strip() and summary != "Summary not found.":
-            return {"title": title, "summary": summary}
+            # Check for image_url in metadata
+            image_url = metadatas[idx].get("image_url")
+            if not image_url:
+                # Generate image and store URL in ChromaDB
+                image_url = generate_image_from_summary(title, summary)
+                if image_url:
+                    # Update ChromaDB metadata for this book
+                    collection.update(
+                        ids=[title],
+                        metadatas=[{**metadatas[idx], "image_url": image_url}]
+                    )
+            return {"title": title, "summary": summary, "image_url": image_url}
     return {"error": "No suitable book found."}
 
 @app.post("/voice")
