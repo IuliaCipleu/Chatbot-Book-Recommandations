@@ -1,15 +1,18 @@
 import React, { useState } from "react";
-import { FaMicrophone } from "react-icons/fa";
+import { FaMicrophone, FaVolumeUp } from "react-icons/fa";
 import "./App.css";
 import LanguageSelector from "./components/LanguageSelector";
+
 
 function App() {
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState("");
   const [language, setLanguage] = useState("english");
+  const [listening, setListening] = useState(false);
 
   // Handle microphone button click
   const handleMic = async () => {
+    setListening(true);
     try {
       // Call backend endpoint for voice input
       const res = await fetch("http://localhost:8000/voice", {
@@ -25,6 +28,8 @@ function App() {
       }
     } catch (err) {
       setMessages((prev) => [...prev, { role: "bot", text: "Voice input error." }]);
+    } finally {
+      setListening(false);
     }
   };
 
@@ -83,6 +88,32 @@ function App() {
     return data.translated || text;
   }
 
+
+  // Text-to-speech function with toggle (stop if already speaking) and best voice selection
+  function speak(text, lang = "en-US") {
+    if ('speechSynthesis' in window) {
+      const synth = window.speechSynthesis;
+      if (synth.speaking) {
+        synth.cancel();
+        return;
+      }
+      const utterance = new window.SpeechSynthesisUtterance(text);
+      utterance.lang = lang;
+      // Try to select a matching voice for the language
+      const voices = synth.getVoices();
+      let selectedVoice = null;
+      if (lang === "ro-RO") {
+        selectedVoice = voices.find(v => v.lang === "ro-RO");
+      } else {
+        selectedVoice = voices.find(v => v.lang === "en-US") || voices.find(v => v.lang && v.lang.startsWith("en"));
+      }
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+      synth.speak(utterance);
+    }
+  }
+
   return (
     <div className="app">
       <LanguageSelector language={language} setLanguage={setLanguage} />
@@ -92,7 +123,26 @@ function App() {
           <div
             key={index}
             className={`chat-message ${msg.role === "user" ? "user" : "bot"}`}
+            style={{ position: 'relative' }}
           >
+            {msg.role === "bot" && (
+              <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => speak(msg.text, language === "romanian" ? "ro-RO" : "en-US")}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 4,
+                    color: '#565656ff',
+                  }}
+                  title={language === "romanian" ? "Citește cu voce" : "Read aloud"}
+                >
+                  <FaVolumeUp size={18} />
+                </button>
+              </div>
+            )}
+            {msg.role === "bot" && <div style={{ height: 12 }} />}
             <strong>{msg.role === "user" ? "🤓 You" : "🤖 Bot"}:</strong>{" "}
             {msg.text}
             {msg.image_url && (
@@ -123,13 +173,23 @@ function App() {
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            boxShadow: listening ? '0 0 0 4px #ff000055, 0 0 8px 4px #ff000099' : undefined,
+            animation: listening ? 'pulse 1s infinite' : undefined
           }}
-          title="Speak"
+          title={listening ? (language === "romanian" ? "Ascultă..." : "Listening...") : "Speak"}
           onClick={handleMic}
         >
-          <FaMicrophone size={20} color="#888" />
+          <FaMicrophone size={20} color={listening ? "#e53935" : "#888"} />
         </button>
+        {/* Add keyframes for pulse animation */}
+        <style>{`
+          @keyframes pulse {
+            0% { box-shadow: 0 0 0 4px #ff000055, 0 0 8px 4px #ff000099; }
+            50% { box-shadow: 0 0 0 8px #ff000022, 0 0 16px 8px #ff000044; }
+            100% { box-shadow: 0 0 0 4px #ff000055, 0 0 8px 4px #ff000099; }
+          }
+        `}</style>
       </div>
     </div>
   );
