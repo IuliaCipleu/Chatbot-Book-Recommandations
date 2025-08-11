@@ -3,6 +3,7 @@ This module provides utilities for filtering offensive content from text using a
 of bad words.
 """
 import json
+import string
 
 def load_bad_words(json_path="data/bad_words.json"):
     """
@@ -34,4 +35,5 @@ def is_offensive(text):
     Returns:
         bool: True if any bad word is found in the text, False otherwise.
     """
-    return any(word in text.lower().split() for word in BAD_WORDS)
+    words = [w.strip(string.punctuation) for w in text.lower().split()]
+    return any(word in words for word in BAD_WORDS)
