@@ -1,3 +1,7 @@
+"""
+This module provides a utility to generate book cover images using OpenAI's DALL·E based
+on book summaries.
+"""
 import openai
 
 def generate_image_from_summary(title, summary, save_path="generated_image.png"):

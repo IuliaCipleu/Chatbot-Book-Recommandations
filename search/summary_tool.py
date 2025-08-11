@@ -11,7 +11,8 @@ def get_summary_by_title(title, batches_dir="data/batches"):
 
     Args:
         title (str): The title of the book.
-        batches_dir (str, optional): Directory containing JSON batch files. Defaults to "data/batches".
+        batches_dir (str, optional): Directory containing JSON batch files.
+        Defaults to "data/batches".
 
     Returns:
         str: The summary of the book if found, otherwise "Summary not found."

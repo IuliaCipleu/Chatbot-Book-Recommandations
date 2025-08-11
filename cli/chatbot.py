@@ -1,14 +1,21 @@
+"""
+Command-line chatbot for book recommendations using RAG (Retrieval-Augmented Generation), OpenAI,
+and ChromaDB.
+Supports language selection, voice input, content filtering, and image generation.
+"""
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import chromadb
+import openai
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from search.retriever import search_books
 from search.summary_tool import get_summary_by_title
 from utils.openai_config import load_openai_key
 from utils.image_generator import generate_image_from_summary
-from utils.voice_input import listen_to_microphone
-import openai
+from utils.voice_input import listen_to_microphone, listen_with_whisper
 
 # Initialize ChromaDB client
 client = chromadb.PersistentClient(path="./chroma_db")
@@ -23,6 +30,16 @@ EXCLUSION_KEYWORDS = {
 
 
 def translate(text, target_language):
+    """
+    Translates the given text to Romanian using the OpenAI GPT model, preserving the original meaning and style.
+
+    Args:
+        text (str): The text to be translated.
+        target_language (str): The target language for translation. If set to "english", the original text is returned.
+
+    Returns:
+        str: The translated text in Romanian, or the original text if the target language is English.
+    """
     if target_language == "english":
         return text
     prompt = f"Translate the following text to Romanian, preserving meaning and style.\n\nText: {text}"
@@ -34,6 +51,19 @@ def translate(text, target_language):
 
 
 def infer_reader_profile(user_input: str) -> str:
+    """
+    Infers the target reader profile category from a given book request.
+
+    Given a user input describing a book request, this function uses an OpenAI language model
+    to classify the intended reader into one of the following categories: 'child', 'teen', 'adult', or 'technical'.
+    If the category cannot be determined, it returns 'unknown'.
+
+    Args:
+        user_input (str): The user's book request or description.
+
+    Returns:
+        str: The inferred reader category ('child', 'teen', 'adult', 'technical', or 'unknown').
+    """
     prompt = (
         "Classify the target reader of this book request into one of the following categories: "
         "child, teen, adult, technical. If uncertain, respond with 'unknown'.\n\n"
@@ -48,11 +78,39 @@ def infer_reader_profile(user_input: str) -> str:
 
 
 def is_appropriate(summary, profile):
+    """
+    Determines if a book summary is appropriate for a given user profile by checking for the presence of exclusion keywords.
+
+    Args:
+        summary (str): The summary of the book to be evaluated.
+        profile (str): The user profile used to retrieve exclusion keywords.
+
+    Returns:
+        bool: True if the summary does not contain any banned keywords for the profile, False otherwise.
+    """
     banned = EXCLUSION_KEYWORDS.get(profile, set())
     return not any(word in summary.lower() for word in banned)
 
 
 def main():
+    """
+    Main function for the chatbot CLI application.
+    This function initializes the chatbot, handles language selection (English or Romanian),
+    and manages the main interaction loop with the user. It supports both text and voice input,
+    translates queries if necessary, infers the reader's profile, searches for appropriate book
+    recommendations, and displays the results (including translated summaries and generated images).
+    The function continues to prompt the user for new queries until the user types 'exit'.
+    Steps performed:
+    1. Loads the OpenAI API key.
+    2. Prompts the user to select a language.
+    3. Repeatedly asks the user for book preferences (via text or voice).
+    4. Translates input to English if Romanian is selected.
+    5. Infers the reader's profile and clarifies if needed.
+    6. Searches for suitable book recommendations, filtering by appropriateness.
+    7. Displays the recommended book and summary, translating back to Romanian if needed.
+    8. Generates and displays an image based on the book summary.
+    9. Exits when the user types 'exit'.
+    """
     load_openai_key()
 
     # Language selection
@@ -68,7 +126,13 @@ def main():
         use_voice = input("Do you want to use voice input? (yes/no): ").strip().lower() == "yes"
 
         if use_voice:
-            user_input = listen_to_microphone(language="ro-RO" if language == "romanian" else "en-US")
+            lang_code = "ro" if language == "romanian" else "en"
+            try:
+                user_input = listen_with_whisper(language=lang_code)
+            except Exception as e:
+                print(f"Whisper failed: {e}, trying Google...")
+                user_input = listen_to_microphone(language="ro-RO" if language == "romanian" else "en-US")
+
         else:
             user_input = input(prompt)
 
@@ -97,7 +161,7 @@ def main():
             results = search_books(query, collection, top_k=top_k)
             ids = results["ids"][0]
             metadatas = results["metadatas"][0]
-            for idx, book_id in enumerate(ids):
+            for idx, _ in enumerate(ids):
                 title = metadatas[idx]["title"]
                 summary = get_summary_by_title(title)
                 if summary and summary.strip() and is_appropriate(summary, role):
@@ -127,9 +191,9 @@ def main():
         image_url = generate_image_from_summary(title, summary)
         if image_url:
             if language == "romanian":
-                print(f"📷 Imagine generată: {image_url}")
+                print(f"Imagine generată: {image_url}")
             else:
-                print(f"📷 Generated Image: {image_url}")
+                print(f"Generated Image: {image_url}")
 
 
 if __name__ == "__main__":
