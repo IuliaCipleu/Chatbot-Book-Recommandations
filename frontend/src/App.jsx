@@ -116,7 +116,9 @@ function App() {
 
   return (
     <div className="app">
-      <LanguageSelector language={language} setLanguage={setLanguage} />
+      <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 1000 }}>
+        <LanguageSelector language={language} setLanguage={setLanguage} />
+      </div>
       <h1>📚 Smart Librarian Chatbot</h1>
       <div className="chat-window">
         {messages.map((msg, index) => (
@@ -160,10 +162,10 @@ function App() {
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type your question here..."
+          placeholder={language === "romanian" ? "Scrie întrebarea ta aici..." : "Type your question here..."}
           style={{ flex: 1 }}
         />
-        <button onClick={handleSend}>Send</button>
+        <button onClick={handleSend}>{language === "romanian" ? "Trimite" : "Send"}</button>
         <button
           style={{
             background: '#fff',

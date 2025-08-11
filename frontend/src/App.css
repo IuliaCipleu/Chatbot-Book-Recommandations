@@ -41,9 +41,10 @@
   color: #888;
 }
 
+
 .app {
-  max-width: 600px;
-  margin: auto;
+  max-width: 900px;
+  margin: 32px auto;
   padding: 20px;
   font-family: sans-serif;
 }
@@ -67,14 +68,16 @@ body {
 .chat-window {
   background: rgba(255, 255, 255, 0.8); /* Semi-transparent white */
   backdrop-filter: blur(5px);
-  border-radius: 12px;
+  border-radius: 14px;
+  max-width: 1250px;
+  margin: 0 auto 24px auto;
 }
 
 
 .chat-message {
-  margin: 10px 0;
-  padding: 8px 12px;
-  border-radius: 12px;
+  margin: 12px 0;
+  padding: 10px 14px;
+  border-radius: 14px;
   max-width: 80%;
   color: black;
 }
@@ -97,14 +100,14 @@ body {
 
 .input-area input {
   flex: 1;
-  padding: 10px;
-  border-radius: 8px;
+  padding: 12px;
+  border-radius: 10px;
   border: 1px solid #ccc;
 }
 
 .input-area button {
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: 12px 22px;
+  border-radius: 10px;
   background-color: #4caf50;
   color: white;
   border: none;

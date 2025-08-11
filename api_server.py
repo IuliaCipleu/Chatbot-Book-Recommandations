@@ -39,7 +39,12 @@ async def recommend(request: Request):
         # Infer user profile from the query
         role = infer_reader_profile(query)
         if role not in ["child", "teen", "adult", "technical"]:
-            role = "adult"
+            # Ask frontend to clarify
+            language = data.get("language", "english")
+            clarify_prompt = "Who is the book for? (child, teen, adult, technical): "
+            if language == "romanian":
+                clarify_prompt = "Pentru cine este cartea? (child, teen, adult, technical): "
+            return {"clarify_role": True, "prompt": clarify_prompt}
     language = data.get("language", "english")
     results = search_books(query, collection, top_k=5)
     ids = results["ids"][0]
