@@ -1,43 +1,11 @@
-"""Voice input utilities for speech recognition using Google and Whisper APIs."""
+"""Voice input utilities for speech recognition using Whisper APIs."""
 
 import os
 import wave
 import sounddevice as sd
-import speech_recognition as sr
 import whisper
 import numpy as np
-# removed unused imports
 
-
-
-def listen_to_microphone(language="en-US"):
-    """
-    Listens to the microphone and converts spoken words to text using Google's Speech
-    Recognition API.
-    Args:
-        language (str): The language code for speech recognition (default is "en-US").
-    Returns:
-        str: The recognized text from the audio input. Returns an empty string if the audio could not be understood or if there was a recognition error.
-    Raises:
-        None: All exceptions are handled within the function.
-    """
-    recognizer = sr.Recognizer()
-    mic = sr.Microphone()
-
-    print("Listening... (speak clearly, press Ctrl+C to stop)")
-    with mic as source:
-        recognizer.adjust_for_ambient_noise(source)
-        audio = recognizer.listen(source)
-
-    try:
-        text = recognizer.recognize_google(audio, language=language)
-        print(f"You said: {text}")
-        return text
-    except sr.UnknownValueError:
-        print("Could not understand the audio.")
-    except sr.RequestError as e:
-        print(f"Speech Recognition error: {e}")
-    return ""
 
 def listen_with_whisper(duration=5, sample_rate=16000, language="en"):
     """

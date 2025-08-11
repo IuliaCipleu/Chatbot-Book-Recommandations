@@ -8,7 +8,6 @@ function App() {
   const [userInput, setUserInput] = useState("");
   const [language, setLanguage] = useState("english");
 
-  const handleSend = async () => {
   // Handle microphone button click
   const handleMic = async () => {
     try {
@@ -28,6 +27,8 @@ function App() {
       setMessages((prev) => [...prev, { role: "bot", text: "Voice input error." }]);
     }
   };
+
+  const handleSend = async () => {
     if (!userInput.trim()) return;
 
     const newMessages = [...messages, { role: "user", text: userInput }];
