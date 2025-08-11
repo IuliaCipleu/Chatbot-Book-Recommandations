@@ -15,7 +15,7 @@ from search.retriever import search_books
 from search.summary_tool import get_summary_by_title
 from utils.openai_config import load_openai_key
 from utils.image_generator import generate_image_from_summary
-from utils.voice_input import listen_to_microphone, listen_with_whisper
+from utils.voice_input import listen_with_whisper
 
 # Initialize ChromaDB client
 client = chromadb.PersistentClient(path="./chroma_db")
