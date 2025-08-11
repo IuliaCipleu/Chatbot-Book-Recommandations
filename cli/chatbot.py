@@ -130,9 +130,8 @@ def main():
             try:
                 user_input = listen_with_whisper(language=lang_code)
             except Exception as e:
-                print(f"Whisper failed: {e}, trying Google...")
-                user_input = listen_to_microphone(language="ro-RO" if language == "romanian" else "en-US")
-
+                print(f"Whisper failed: {e}")
+                
         else:
             user_input = input(prompt)
 

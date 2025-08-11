@@ -1,13 +1,12 @@
 """Voice input utilities for speech recognition using Google and Whisper APIs."""
 
 import os
-import tempfile
 import wave
 import sounddevice as sd
 import speech_recognition as sr
 import whisper
 import numpy as np
-    # removed unused imports
+# removed unused imports
 
 
 
@@ -61,9 +60,8 @@ def listen_with_whisper(duration=5, sample_rate=16000, language="en"):
     # Convert to 16-bit PCM
     audio = (audio * 32767).astype(np.int16).flatten()
 
-    # Save to a temporary file using the built-in wave module for compatibility
-    fd, temp_path = tempfile.mkstemp(suffix=".wav")
-    os.close(fd)
+    # Save to a fixed file in the current directory for Windows compatibility
+    temp_path = "temp_audio.wav"
     with wave.open(temp_path, 'wb') as wf:
         wf.setnchannels(1)
         wf.setsampwidth(2)  # 16-bit PCM
@@ -71,10 +69,28 @@ def listen_with_whisper(duration=5, sample_rate=16000, language="en"):
         wf.writeframes(audio.tobytes())
 
     try:
-        print("📥 Audio saved, transcribing...")
+        print(f"📥 Audio saved at: {os.path.abspath(temp_path)}, transcribing...")
+        print(f"[DEBUG] File exists before transcription: {os.path.exists(temp_path)}")
+        if not os.path.exists(temp_path):
+            print(f"❌ Temp file does not exist: {temp_path}, creating empty WAV file.")
+            with wave.open(temp_path, 'wb') as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(sample_rate)
+                wf.writeframes(b'')
+        # Double-check file is closed and accessible
+        try:
+            with open(temp_path, 'rb') as f:
+                f.read(1)
+        except Exception as file_err:
+            print(f"[DEBUG] Could not open file before transcription: {file_err}")
         result = model.transcribe(temp_path, language=language)
-        print(f"🗣️ Transcribed: {result['text']}")
-        return result["text"]
+        if isinstance(result, dict) and 'text' in result:
+            print(f"🗣️ Transcribed: {result['text']}")
+            return result["text"]
+        else:
+            print(f"❌ Whisper returned error: {result}")
+            return ""
     except Exception as e:
         print(f"❌ Whisper failed: {e}")
         return ""
@@ -83,4 +99,3 @@ def listen_with_whisper(duration=5, sample_rate=16000, language="en"):
             os.remove(temp_path)
         except Exception as cleanup_err:
             print(f"⚠️ Could not delete temp file: {cleanup_err}")
-            
