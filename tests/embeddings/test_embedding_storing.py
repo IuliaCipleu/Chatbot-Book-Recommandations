@@ -34,7 +34,7 @@ def test_embed_and_store_in_batches(monkeypatch):
     class DummyResp:
         def __init__(self, emb):
             self.data = [MagicMock(embedding=emb)]
-    monkeypatch.setattr(es.openai.embeddings, "create", lambda input, model, **kwargs: DummyResp([1.0, 2.0, 3.0]))
+    monkeypatch.setattr(es.openai.embeddings, "create", lambda **kwargs: DummyResp([1.0, 2.0, 3.0]))
     # Patch print to suppress output
     monkeypatch.setattr("builtins.print", lambda *a, **k: None)
     es.embed_and_store_in_batches(collection, summaries, batch_size=1, resume=False)
@@ -48,7 +48,7 @@ def test_embed_and_store_in_batches_resume(monkeypatch):
     class DummyResp:
         def __init__(self, emb):
             self.data = [MagicMock(embedding=emb)]
-    monkeypatch.setattr(es.openai.embeddings, "create", lambda input_text, model, **kwargs: DummyResp([1.0, 2.0, 3.0]))
+    monkeypatch.setattr(es.openai.embeddings, "create", lambda **kwargs: DummyResp([1.0, 2.0, 3.0]))
     monkeypatch.setattr("builtins.print", lambda *a, **k: None)
     es.embed_and_store_in_batches(collection, summaries, batch_size=1, resume=True)
     # Only Book2 should be added
@@ -66,7 +66,7 @@ def test_embed_and_store_in_batches_invalid_model(monkeypatch):
     class DummyResp:
         def __init__(self, emb):
             self.data = [MagicMock(embedding=emb)]
-    monkeypatch.setattr(es.openai.embeddings, "create", lambda input_text, model, **kwargs: DummyResp([1.0, 2.0, 3.0]))
+    monkeypatch.setattr(es.openai.embeddings, "create", lambda **kwargs: DummyResp([1.0, 2.0, 3.0]))
     # Patch allowed_models in the function's global scope
     orig_embed_and_store = es.embed_and_store_in_batches
     def fake_embed_and_store(*args, **kwargs):
