@@ -1,5 +1,4 @@
-
-from fastapi import Body
+from fastapi import Body, HTTPException
 import openai
 from search.retriever import search_books
 from search.summary_tool import get_summary_by_title
@@ -12,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import chromadb
 import httpx
+from auth.service import insert_user, get_user, login_user
 
 
 app = FastAPI()
@@ -117,3 +117,37 @@ async def translate(request: Request):
         return JSONResponse({"translated": translated})
     except Exception as e:
         return JSONResponse({"translated": text, "error": str(e)})
+
+@app.post("/register")
+async def register(request: Request):
+    data = await request.json()
+    try:
+        insert_user(
+            conn_string="localhost/orclpdb1",
+            db_user="chatbot_user",
+            db_password="yourStrongPassword123",
+            username=data["username"],
+            email=data["email"],
+            plain_password=data["password"],
+            language=data.get("language", "english"),
+            profile=data.get("profile", "adult"),
+            voice_enabled=data.get("voice_enabled", False)
+        )
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/login")
+async def login(request: Request):
+    data = await request.json()
+    user = login_user(
+        conn_string="localhost/orclpdb1",
+        db_user="chatbot_user",
+        db_password="yourStrongPassword123",
+        username=data["username"],
+        plain_password=data["password"]
+    )
+    if user:
+        return {"success": True, "user": user}
+    else:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
