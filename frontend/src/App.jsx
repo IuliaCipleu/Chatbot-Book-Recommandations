@@ -35,14 +35,13 @@ function App() {
     setMessages(newMessages);
     setUserInput("");
 
-    // Call backend API
     try {
       const res = await fetch("http://localhost:8000/recommend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query: userInput,
-          role: "adult", // or get from user selection
+          role: "adult",
           language,
         }),
       });
@@ -51,8 +50,12 @@ function App() {
       if (data.error) {
         botResponse = { text: data.error };
       } else {
+        let text = `Recommended Book: ${data.title}\n\nSummary: ${data.summary}`;
+        if (language === "romanian") {
+          text = await translateText(text, "romanian");
+        }
         botResponse = {
-          text: `Recommended Book: ${data.title}\n\nSummary: ${data.summary}`,
+          text,
           image_url: data.image_url
         };
       }
@@ -67,6 +70,18 @@ function App() {
       handleSend();
     }
   };
+
+  async function translateText(text, targetLang) {
+    if (targetLang === "english") return text;
+    // Call your backend translation endpoint or a public API
+    const res = await fetch("http://localhost:8000/translate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, target_lang: targetLang }),
+    });
+    const data = await res.json();
+    return data.translated || text;
+  }
 
   return (
     <div className="app">

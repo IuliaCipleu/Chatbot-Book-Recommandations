@@ -16,17 +16,11 @@ from search.summary_tool import get_summary_by_title
 from utils.openai_config import load_openai_key
 from utils.image_generator import generate_image_from_summary
 from utils.voice_input import listen_with_whisper
+from utils.filter import is_appropriate, EXCLUSION_KEYWORDS, infer_reader_profile
 
 # Initialize ChromaDB client
 client = chromadb.PersistentClient(path="./chroma_db")
 collection = client.get_or_create_collection("books")
-
-EXCLUSION_KEYWORDS = {
-    "child": {"violence", "drugs", "sex", "death", "abuse"},
-    "teen": {"graphic sex", "heavy violence"},
-    "technical": {"fairy tale", "fantasy", "magic"},
-    "adult": set(),
-}
 
 
 def translate(text, target_language):
@@ -48,49 +42,6 @@ def translate(text, target_language):
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content.strip()
-
-
-def infer_reader_profile(user_input: str) -> str:
-    """
-    Infers the target reader profile category from a given book request.
-
-    Given a user input describing a book request, this function uses an OpenAI language model
-    to classify the intended reader into one of the following categories: 'child', 'teen', 'adult', or 'technical'.
-    If the category cannot be determined, it returns 'unknown'.
-
-    Args:
-        user_input (str): The user's book request or description.
-
-    Returns:
-        str: The inferred reader category ('child', 'teen', 'adult', 'technical', or 'unknown').
-    """
-    prompt = (
-        "Classify the target reader of this book request into one of the following categories: "
-        "child, teen, adult, technical. If uncertain, respond with 'unknown'.\n\n"
-        f"Book request: \"{user_input}\"\n\n"
-        "Category:"
-    )
-    response = openai.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response.choices[0].message.content.strip().lower()
-
-
-def is_appropriate(summary, profile):
-    """
-    Determines if a book summary is appropriate for a given user profile by checking for the presence of exclusion keywords.
-
-    Args:
-        summary (str): The summary of the book to be evaluated.
-        profile (str): The user profile used to retrieve exclusion keywords.
-
-    Returns:
-        bool: True if the summary does not contain any banned keywords for the profile, False otherwise.
-    """
-    banned = EXCLUSION_KEYWORDS.get(profile, set())
-    return not any(word in summary.lower() for word in banned)
-
 
 def main():
     """

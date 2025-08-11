@@ -1,12 +1,17 @@
+
+from fastapi import Body
+import openai
 from search.retriever import search_books
 from search.summary_tool import get_summary_by_title
 from utils.openai_config import load_openai_key
 from utils.voice_input import listen_with_whisper
 from utils.image_generator import generate_image_from_summary
+from utils.filter import is_appropriate, infer_reader_profile
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import chromadb
+import httpx
 
 
 app = FastAPI()
@@ -29,7 +34,12 @@ load_openai_key()
 async def recommend(request: Request):
     data = await request.json()
     query = data.get("query")
-    role = data.get("role", "adult")
+    role = data.get("role")
+    if not role:
+        # Infer user profile from the query
+        role = infer_reader_profile(query)
+        if role not in ["child", "teen", "adult", "technical"]:
+            role = "adult"
     language = data.get("language", "english")
     results = search_books(query, collection, top_k=5)
     ids = results["ids"][0]
@@ -37,14 +47,30 @@ async def recommend(request: Request):
     for idx, _ in enumerate(ids):
         title = metadatas[idx]["title"]
         summary = get_summary_by_title(title)
-        if summary and summary.strip() and summary != "Summary not found.":
-            # Check for image_url in metadata
+        if summary and summary.strip() and summary != "Summary not found." and is_appropriate(summary, role):
             image_url = metadatas[idx].get("image_url")
             if not image_url:
-                # Generate image and store URL in ChromaDB
-                image_url = generate_image_from_summary(title, summary)
+                # Translate to English if needed
+                if language == "romanian":
+                    async with httpx.AsyncClient() as client:
+                        resp_title = await client.post("http://localhost:8000/translate", json={"text": title, "target_lang": "english"})
+                        title_en = resp_title.json().get("translated", title)
+                        resp_summary = await client.post("http://localhost:8000/translate", json={"text": summary, "target_lang": "english"})
+                        summary_en = resp_summary.json().get("translated", summary)
+                else:
+                    title_en = title
+                    summary_en = summary
+                # Add user type context to the image prompt
+                image_prompt = summary_en
+                if role == "child":
+                    image_prompt += " (colorful, cartoonish, friendly, for children, illustration style)"
+                elif role == "teen":
+                    image_prompt += " (dynamic, modern, appealing to teenagers, graphic novel style)"
+                elif role == "technical":
+                    image_prompt += " (clean, schematic, technical illustration, informative)"
+                # For adult, no extra style needed
+                image_url = generate_image_from_summary(title_en, image_prompt)
                 if image_url:
-                    # Update ChromaDB metadata for this book
                     collection.update(
                         ids=[title],
                         metadatas=[{**metadatas[idx], "image_url": image_url}]
@@ -60,3 +86,24 @@ async def voice(request: Request):
     lang_code = "ro" if language == "romanian" else "en"
     text = listen_with_whisper(language=lang_code)
     return JSONResponse({"text": text})
+
+@app.post("/translate")
+async def translate(request: Request):
+    data = await request.json()
+    text = data.get("text")
+    target_lang = data.get("target_lang", "romanian")
+    if not text:
+        return JSONResponse({"translated": ""})
+    if target_lang == "romanian":
+        prompt = f"Translate the following text to Romanian. Only return the translated text.\n\n{text}"
+    else:
+        prompt = f"Translate the following text to English. Only return the translated text.\n\n{text}"
+    try:
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        translated = response.choices[0].message.content.strip()
+        return JSONResponse({"translated": translated})
+    except Exception as e:
+        return JSONResponse({"translated": text, "error": str(e)})

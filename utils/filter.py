@@ -4,6 +4,21 @@ of bad words.
 """
 import json
 import string
+import openai
+
+from utils.openai_config import load_openai_key
+
+# Exclusion keywords for user type filtering
+EXCLUSION_KEYWORDS = {
+    "child": {"violence", "drugs", "sex", "death", "abuse"},
+    "teen": {"graphic sex", "heavy violence"},
+    "technical": {"fairy tale", "fantasy", "magic"},
+    "adult": set(),
+}
+
+def is_appropriate(summary, profile):
+    banned = EXCLUSION_KEYWORDS.get(profile, set())
+    return not any(word in summary.lower() for word in banned)
 
 def load_bad_words(json_path="data/bad_words.json"):
     """
@@ -37,3 +52,31 @@ def is_offensive(text):
     """
     words = [w.strip(string.punctuation) for w in text.lower().split()]
     return any(word in words for word in BAD_WORDS)
+
+def infer_reader_profile(user_input: str) -> str:
+    """
+    Infers the target reader profile category from a given book request.
+
+    Given a user input describing a book request, this function uses an OpenAI language model
+    to classify the intended reader into one of the following categories: 'child', 'teen', 'adult', or 'technical'.
+    If the category cannot be determined, it returns 'unknown'.
+
+    Args:
+        user_input (str): The user's book request or description.
+
+    Returns:
+        str: The inferred reader category ('child', 'teen', 'adult', 'technical', or 'unknown').
+    """
+    load_openai_key()
+    
+    prompt = (
+        "Classify the target reader of this book request into one of the following categories: "
+        "child, teen, adult, technical. If uncertain, respond with 'unknown'.\n\n"
+        f"Book request: \"{user_input}\"\n\n"
+        "Category:"
+    )
+    response = openai.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content.strip().lower()
