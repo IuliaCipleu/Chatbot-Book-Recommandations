@@ -9,18 +9,53 @@ function App() {
   const [language, setLanguage] = useState("english");
 
   const handleSend = async () => {
+  // Handle microphone button click
+  const handleMic = async () => {
+    try {
+      // Call backend endpoint for voice input
+      const res = await fetch("http://localhost:8000/voice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language }),
+      });
+      const data = await res.json();
+      if (data.text) {
+        setUserInput(data.text);
+      } else {
+        setMessages((prev) => [...prev, { role: "bot", text: "No speech detected." }]);
+      }
+    } catch (err) {
+      setMessages((prev) => [...prev, { role: "bot", text: "Voice input error." }]);
+    }
+  };
     if (!userInput.trim()) return;
 
-    // Add user message to chat
     const newMessages = [...messages, { role: "user", text: userInput }];
     setMessages(newMessages);
     setUserInput("");
 
-    // Simulate bot reply (replace this with actual backend call)
-    const botResponse = `This is a placeholder reply to: "${userInput}"`;
-    setTimeout(() => {
+    // Call backend API
+    try {
+      const res = await fetch("http://localhost:8000/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: userInput,
+          role: "adult", // or get from user selection
+          language,
+        }),
+      });
+      const data = await res.json();
+      let botResponse;
+      if (data.error) {
+        botResponse = data.error;
+      } else {
+        botResponse = `Recommended Book: ${data.title}\n\nSummary: ${data.summary}`;
+      }
       setMessages((prev) => [...prev, { role: "bot", text: botResponse }]);
-    }, 500);
+    } catch (err) {
+      setMessages((prev) => [...prev, { role: "bot", text: "Server error." }]);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -66,8 +101,8 @@ function App() {
             alignItems: 'center',
             justifyContent: 'center'
           }}
-          title="Speak (coming soon)"
-          disabled
+          title="Speak"
+          onClick={handleMic}
         >
           <FaMicrophone size={20} color="#888" />
         </button>
