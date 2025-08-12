@@ -1,18 +1,64 @@
+import React, { useState, useEffect } from "react";
+
 export default function UserReadBooks({ username }) {
-  const [books, setBooks] = useState([]);
+  // All ChromaDB books
+  const [allBooks, setAllBooks] = useState([]);
+  const [searchAll, setSearchAll] = useState("");
+  const [sortAllBy, setSortAllBy] = useState("title");
+  const [sortAllDir, setSortAllDir] = useState("asc");
+  const [addRating, setAddRating] = useState("");
   const [newBook, setNewBook] = useState("");
   const [rating, setRating] = useState("");
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [books, setBooks] = useState([]);
   const [sortBy, setSortBy] = useState("title");
   const [sortDir, setSortDir] = useState("asc");
 
   useEffect(() => {
-    if (username) fetchBooks();
-    // eslint-disable-next-line
-  }, [username]);
+    async function fetchAllBooks() {
+      try {
+        const res = await fetch(`http://localhost:8000/search_titles?q=`);
+        const data = await res.json();
+        setAllBooks(data.titles || []);
+      } catch {
+        setAllBooks([]);
+      }
+    }
+    fetchAllBooks();
+  }, []);
+
+  function filteredAllBooks() {
+    let filtered = allBooks;
+    if (searchAll.length > 1) {
+      filtered = allBooks.filter(t => t.toLowerCase().includes(searchAll.toLowerCase()));
+    }
+    filtered = filtered.sort((a, b) => {
+      if (a < b) return sortAllDir === 'asc' ? -1 : 1;
+      if (a > b) return sortAllDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return filtered;
+  }
+
+  async function handleAddFromAll(title) {
+    setError(null); setSuccess(null);
+    try {
+      const res = await fetch("http://localhost:8000/add_read_book", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, book_title: title, rating: addRating ? Number(addRating) : null })
+      });
+      if (!res.ok) throw new Error((await res.json()).detail || "Failed to add book.");
+      setSuccess("Book added!");
+      setAddRating("");
+      fetchBooks();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
 
   async function fetchBooks() {
     setError(null);
@@ -145,17 +191,61 @@ export default function UserReadBooks({ username }) {
       </form>
       {error && <div className="error-message">{error}</div>}
       {success && <div className="success-message">{success}</div>}
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ overflowX: 'auto', marginBottom: 32 }}>
+        <h3 style={{ marginTop: 30, marginBottom: 10, color: '#1976d2', textAlign: 'center' }}>All Books in Library</h3>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 10, justifyContent: 'center' }}>
+          <input
+            type="text"
+            placeholder="Search all books..."
+            value={searchAll}
+            onChange={e => setSearchAll(e.target.value)}
+            style={{ padding: 7, borderRadius: 6, border: '1px solid #bbb', minWidth: 180 }}
+          />
+          <input
+            type="number"
+            min="1"
+            max="5"
+            placeholder="Rating (1-5)"
+            value={addRating}
+            onChange={e => setAddRating(e.target.value)}
+            style={{ width: 90 }}
+          />
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 8 }}>
+            <thead>
+              <tr>
+                <th style={{ cursor: 'pointer', padding: 8, borderBottom: '1px solid #ccc', color: '#000' }} onClick={() => {
+                  setSortAllBy('title'); setSortAllDir(sortAllBy === 'title' && sortAllDir === 'asc' ? 'desc' : 'asc');
+                }}>Title {sortAllDir === 'asc' ? '▲' : '▼'}</th>
+                <th style={{ padding: 8, borderBottom: '1px solid #ccc', color: '#000' }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAllBooks().length === 0 && (
+                <tr><td colSpan={2} style={{ color: '#888', textAlign: 'center', padding: 12 }}>No books found.</td></tr>
+              )}
+              {filteredAllBooks().map((title, i) => (
+                <tr key={i}>
+                  <td style={{ padding: 8, borderBottom: '1px solid #eee', color: '#000' }}>{title}</td>
+                  <td style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'center' }}>
+                    <button onClick={() => handleAddFromAll(title)} style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 12px', fontWeight: 500, cursor: 'pointer' }}>Mark as Read</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 10, background: '#fff', borderRadius: 8 }}>
           <thead>
             <tr>
-              <th style={{ cursor: 'pointer', padding: 8, borderBottom: '1px solid #ccc' }} onClick={() => {
+              <th style={{ cursor: 'pointer', padding: 8, borderBottom: '1px solid #ccc', color: '#000' }} onClick={() => {
                 setSortBy('title'); setSortDir(sortBy === 'title' && sortDir === 'asc' ? 'desc' : 'asc');
               }}>Title {sortBy === 'title' ? (sortDir === 'asc' ? '▲' : '▼') : ''}</th>
-              <th style={{ cursor: 'pointer', padding: 8, borderBottom: '1px solid #ccc' }} onClick={() => {
+              <th style={{ cursor: 'pointer', padding: 8, borderBottom: '1px solid #ccc', color: '#000' }} onClick={() => {
                 setSortBy('rating'); setSortDir(sortBy === 'rating' && sortDir === 'asc' ? 'desc' : 'asc');
               }}>Rating {sortBy === 'rating' ? (sortDir === 'asc' ? '▲' : '▼') : ''}</th>
-              <th style={{ cursor: 'pointer', padding: 8, borderBottom: '1px solid #ccc' }} onClick={() => {
+              <th style={{ cursor: 'pointer', padding: 8, borderBottom: '1px solid #ccc', color: '#000' }} onClick={() => {
                 setSortBy('read_date'); setSortDir(sortBy === 'read_date' && sortDir === 'asc' ? 'desc' : 'asc');
               }}>Date {sortBy === 'read_date' ? (sortDir === 'asc' ? '▲' : '▼') : ''}</th>
             </tr>
@@ -166,7 +256,7 @@ export default function UserReadBooks({ username }) {
             )}
             {sortBooks(books).map((b, i) => (
               <tr key={i}>
-                <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{b.title}</td>
+                <td style={{ padding: 8, borderBottom: '1px solid #eee', color: '#000' }}>{b.title}</td>
                 <td style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'center' }}>{b.rating ? b.rating + '/5' : ''}</td>
                 <td style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'center' }}>{b.read_date}</td>
               </tr>
