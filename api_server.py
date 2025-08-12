@@ -230,8 +230,8 @@ async def user_read_books_api(username: str = Query(...)):
         raise HTTPException(status_code=400, detail=str(e))
     
 @app.get("/search_titles")
-async def search_titles(q: str = "", limit: int = 10):
-    # Return a list of book titles from ChromaDB matching the query string
+async def search_titles(q: str = "", limit: int = 15, offset: int = 0):
+    # Return a list of book titles from ChromaDB matching the query string, with pagination
     try:
         # Get all titles from ChromaDB metadata
         all_titles = []
@@ -241,7 +241,9 @@ async def search_titles(q: str = "", limit: int = 10):
         # Filter by query string (case-insensitive substring match)
         q_lower = q.lower()
         filtered = [t for t in all_titles if q_lower in t.lower()]
-        filtered = sorted(filtered)[:limit]
-        return {"titles": filtered}
+        filtered = sorted(filtered)
+        total = len(filtered)
+        paged = filtered[offset:offset+limit]
+        return {"titles": paged, "total": total, "offset": offset, "limit": limit}
     except Exception as e:
-        return {"titles": [], "error": str(e)}
+        return {"titles": [], "error": str(e), "total": 0, "offset": offset, "limit": limit}

@@ -16,32 +16,40 @@ export default function UserReadBooks({ username }) {
   const [books, setBooks] = useState([]);
   const [sortBy, setSortBy] = useState("title");
   const [sortDir, setSortDir] = useState("asc");
+  // Pagination for All Books
+  const [allPage, setAllPage] = useState(1);
+  const ALL_PER_PAGE = 15;
 
+  // Pagination state for total
+  const [allTotal, setAllTotal] = useState(0);
+
+  // Fetch books for the current page and search
   useEffect(() => {
     async function fetchAllBooks() {
       try {
-        const res = await fetch(`http://localhost:8000/search_titles?q=`);
+        const res = await fetch(`http://localhost:8000/search_titles?q=${encodeURIComponent(searchAll)}&limit=${ALL_PER_PAGE}&offset=${(allPage-1)*ALL_PER_PAGE}`);
         const data = await res.json();
         setAllBooks(data.titles || []);
+        setAllTotal(data.total || 0);
       } catch {
         setAllBooks([]);
+        setAllTotal(0);
       }
     }
     fetchAllBooks();
-  }, []);
+  }, [allPage, searchAll]);
 
+  // No need to filter/sort here, backend does it
   function filteredAllBooks() {
-    let filtered = allBooks;
-    if (searchAll.length > 1) {
-      filtered = allBooks.filter(t => t.toLowerCase().includes(searchAll.toLowerCase()));
-    }
-    filtered = filtered.sort((a, b) => {
-      if (a < b) return sortAllDir === 'asc' ? -1 : 1;
-      if (a > b) return sortAllDir === 'asc' ? 1 : -1;
-      return 0;
-    });
-    return filtered;
+    return allBooks;
   }
+
+  // No need to slice, backend returns only the current page
+  function pagedAllBooks() {
+    return allBooks;
+  }
+
+  // We don't know total pages unless backend provides it, so just show arrows
 
   async function handleAddFromAll(title) {
     setError(null); setSuccess(null);
@@ -139,7 +147,7 @@ export default function UserReadBooks({ username }) {
       border: '1px solid #d0d7e2',
       padding: 24,
       margin: '0 auto',
-      maxWidth: 600,
+      maxWidth: 1400,
       marginBottom: 24
     }}>
       <h3 style={{ marginTop: 0, marginBottom: 14, color: '#1976d2', textAlign: 'center' }}>Books You've Read</h3>
@@ -198,7 +206,7 @@ export default function UserReadBooks({ username }) {
             type="text"
             placeholder="Search all books..."
             value={searchAll}
-            onChange={e => setSearchAll(e.target.value)}
+            onChange={e => { setSearchAll(e.target.value); setAllPage(1); }}
             style={{ padding: 7, borderRadius: 6, border: '1px solid #bbb', minWidth: 180 }}
           />
           <input
@@ -225,7 +233,7 @@ export default function UserReadBooks({ username }) {
               {filteredAllBooks().length === 0 && (
                 <tr><td colSpan={2} style={{ color: '#888', textAlign: 'center', padding: 12 }}>No books found.</td></tr>
               )}
-              {filteredAllBooks().map((title, i) => (
+              {pagedAllBooks().map((title, i) => (
                 <tr key={i}>
                   <td style={{ padding: 8, borderBottom: '1px solid #eee', color: '#000' }}>{title}</td>
                   <td style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'center' }}>
@@ -233,6 +241,22 @@ export default function UserReadBooks({ username }) {
                   </td>
                 </tr>
               ))}
+        {/* Pagination controls for All Books */}
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, margin: '12px 0' }}>
+          <button
+            onClick={() => setAllPage(p => Math.max(1, p - 1))}
+            disabled={allPage === 1}
+            style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid #bbb', background: allPage === 1 ? '#eee' : '#fff', color: '#1976d2', cursor: allPage === 1 ? 'not-allowed' : 'pointer', fontSize: 18 }}
+          >&lt;-</button>
+          <span style={{ fontWeight: 600, color: '#1976d2', fontSize: 18 }}>
+            Page {allPage} of {Math.max(1, Math.ceil(allTotal / ALL_PER_PAGE))}
+          </span>
+          <button
+            onClick={() => setAllPage(p => p + 1)}
+            disabled={allPage >= Math.ceil(allTotal / ALL_PER_PAGE)}
+            style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid #bbb', background: allPage >= Math.ceil(allTotal / ALL_PER_PAGE) ? '#eee' : '#fff', color: '#1976d2', cursor: allPage >= Math.ceil(allTotal / ALL_PER_PAGE) ? 'not-allowed' : 'pointer', fontSize: 18 }}
+          >-&gt;</button>
+        </div>
             </tbody>
           </table>
         </div>

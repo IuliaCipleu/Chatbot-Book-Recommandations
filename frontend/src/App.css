@@ -1,3 +1,8 @@
+/* Make the read-books-card panel wider and ensure it overrides other max-widths */
+.read-books-card {
+  max-width: 1400px !important;
+  width: 100%;
+}
 .login-page {
   max-width: 420px;
   margin: 90px auto 0 auto;
