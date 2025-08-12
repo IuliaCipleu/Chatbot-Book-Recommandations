@@ -84,7 +84,7 @@ export default function UserProfilePage() {
           <p><b>Username:</b> {user.username}</p>
           <p><b>Email:</b> {user.email}</p>
           <p><b>Language:</b> {user.language}</p>
-          <p><b>Profile:</b> {user.profile}</p>
+          <p><b>Category:</b> {user.profile}</p>
           <p><b>Voice Enabled:</b> {user.voice_enabled ? 'Yes' : 'No'}</p>
           <button onClick={handleEdit} style={{marginRight: 12}}>Edit Profile</button>
           <button onClick={handleDelete} style={{color: '#d32f2f'}}>Delete Profile</button>
@@ -94,7 +94,14 @@ export default function UserProfilePage() {
           <label>Username: <input name="username" value={form.username} onChange={handleChange} disabled /></label>
           <label>Email: <input name="email" value={form.email} onChange={handleChange} /></label>
           <label>Language: <input name="language" value={form.language} onChange={handleChange} /></label>
-          <label>Profile: <input name="profile" value={form.profile} onChange={handleChange} /></label>
+          <label>Category: 
+            <select name="profile" value={form.profile} onChange={handleChange}>
+              <option value="child">child</option>
+              <option value="teen">teen</option>
+              <option value="adult">adult</option>
+              <option value="technical">technical</option>
+            </select>
+          </label>
           <label>Voice Enabled: <input name="voice_enabled" type="checkbox" checked={form.voice_enabled} onChange={handleChange} /></label>
           <div style={{display: 'flex', gap: 10}}>
             <button type="submit">Save</button>

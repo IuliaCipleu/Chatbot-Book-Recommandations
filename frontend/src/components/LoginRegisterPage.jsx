@@ -16,6 +16,10 @@ export default function LoginRegisterPage({ onLogin, onShowRegister }) {
         body: JSON.stringify({ username, password }),
       });
       if (!res.ok) throw new Error((await res.json()).detail || "Login failed");
+      const data = await res.json();
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
       onLogin();
     } catch (err) {
       setError(err.message);

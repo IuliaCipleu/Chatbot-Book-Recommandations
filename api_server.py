@@ -1,5 +1,7 @@
 from fastapi import Body, HTTPException
 import openai
+import os
+from dotenv import load_dotenv
 from search.retriever import search_books
 from search.summary_tool import get_summary_by_title
 from utils.openai_config import load_openai_key
@@ -11,9 +13,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import chromadb
 import httpx
-from auth.service import insert_user, get_user, login_user
+from auth.service import insert_user, get_user, login_user, update_user
 
 
+
+load_dotenv()
+DB_CONN_STRING = os.environ.get("DB_CONN_STRING", "localhost/freepdb1")
+DB_USER = os.environ.get("DB_USER", "SYSTEM")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "new_password")
 app = FastAPI()
 
 # Allow frontend to call backend (CORS)
@@ -118,14 +125,34 @@ async def translate(request: Request):
     except Exception as e:
         return JSONResponse({"translated": text, "error": str(e)})
 
+@app.post("/update_user")
+async def update_user_api(request: Request):
+    data = await request.json()
+    try:
+        # Only allow updating fields that exist in the user table
+        update_kwargs = {}
+        for field in ["email", "language", "profile", "voice_enabled", "plain_password"]:
+            if field in data:
+                update_kwargs[field] = data[field]
+        update_user(
+            conn_string=DB_CONN_STRING,
+            db_user=DB_USER,
+            db_password=DB_PASSWORD,
+            username=data["username"],
+            **update_kwargs
+        )
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @app.post("/register")
 async def register(request: Request):
     data = await request.json()
     try:
         insert_user(
-            conn_string="localhost/freepdb1",
-            db_user="SYSTEM",
-            db_password="new_password",
+            conn_string=DB_CONN_STRING,
+            db_user=DB_USER,
+            db_password=DB_PASSWORD,
             username=data["username"],
             email=data["email"],
             plain_password=data["password"],
@@ -141,9 +168,9 @@ async def register(request: Request):
 async def login(request: Request):
     data = await request.json()
     user = login_user(
-        conn_string="localhost/freepdb1",
-        db_user="SYSTEM",
-        db_password="new_password",
+        conn_string=DB_CONN_STRING,
+        db_user=DB_USER,
+        db_password=DB_PASSWORD,
         username=data["username"],
         plain_password=data["password"]
     )
@@ -151,3 +178,23 @@ async def login(request: Request):
         return {"success": True, "user": user}
     else:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+@app.post("/update_user")
+async def update_user_api(request: Request):
+    data = await request.json()
+    try:
+        # Only allow updating fields that exist in the user table
+        update_kwargs = {}
+        for field in ["email", "language", "profile", "voice_enabled", "plain_password"]:
+            if field in data:
+                update_kwargs[field] = data[field]
+        update_user(
+            conn_string="localhost/freepdb1",
+            db_user="SYSTEM",
+            db_password="new_password",
+            username=data["username"],
+            **update_kwargs
+        )
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
