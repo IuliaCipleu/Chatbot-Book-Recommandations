@@ -35,11 +35,11 @@ def init_chroma():
 
 def load_summaries(path):
     """
-    Loads book summaries from a JSON file.
+    Loads book summaries and metadata from a JSON file (list of dicts).
     Args:
         path (str): Path to the JSON file containing book summaries.
     Returns:
-        dict: A dictionary mapping book titles to summaries.
+        list: List of dicts with keys title, summary, genre, author.
     """
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -82,8 +82,7 @@ def embed_and_store_in_batches(collection, summaries, batch_size=100, resume=Tru
         except (AttributeError, KeyError):
             pass
 
-    items = list(summaries.items())
-    total = len(items)
+    total = len(summaries)
     i = 0
     while i < total:
         batch = []
@@ -91,14 +90,20 @@ def embed_and_store_in_batches(collection, summaries, batch_size=100, resume=Tru
         batch_ids = []
         batch_metas = []
         for j in range(i, min(i+batch_size, total)):
-            title, summary = items[j]
+            book = summaries[j]
+            title = book.get("title")
+            summary = book.get("summary")
+            genre = book.get("genre")
+            author = book.get("author")
+            if not title or not summary:
+                continue
             if resume and title in existing_ids:
                 continue
             input_text = f"{title}: {summary}"
             batch.append(input_text)
             batch_titles.append(title)
             batch_ids.append(title)
-            batch_metas.append({"title": title})
+            batch_metas.append({"title": title, "genre": genre, "author": author})
         if not batch:
             i += batch_size
             continue

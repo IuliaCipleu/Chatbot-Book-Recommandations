@@ -16,7 +16,7 @@ def split_txt_to_json_batches(txt_file_path, output_dir, batch_size=100):
         batch_size (int, optional): Number of books per batch file. Defaults to 100.
     """
     os.makedirs(output_dir, exist_ok=True)
-    batch = {}
+    batch = []
     batch_num = 1
     with open(txt_file_path, "r", encoding="utf-8") as f:
         for _, line in enumerate(f, 1):
@@ -24,16 +24,34 @@ def split_txt_to_json_batches(txt_file_path, output_dir, batch_size=100):
             if len(parts) < 7:
                 continue
             title = parts[2]
+            author = parts[3] if len(parts) > 3 else None
+            genres = parts[5] if len(parts) > 5 else None
+            genre_list = None
+            if genres:
+                try:
+                    # Try to parse as JSON dict and extract values
+                    genre_dict = json.loads(genres)
+                    if isinstance(genre_dict, dict):
+                        genre_list = list(genre_dict.values())
+                except Exception:
+                    # If not JSON, treat as comma-separated string
+                    genre_list = [g.strip() for g in genres.split(",") if g.strip()]
             summary = parts[6]
             if not (title and summary):
                 continue
-            batch[title] = summary
+            book = {
+                "title": title,
+                "summary": summary,
+                "genre": genre_list,
+                "author": author
+            }
+            batch.append(book)
             if len(batch) == batch_size:
                 out_path = os.path.join(output_dir, f"book_summaries_batch_{batch_num}.json")
                 with open(out_path, "w", encoding="utf-8") as out:
                     json.dump(batch, out, indent=2, ensure_ascii=False)
                 print(f"Saved {len(batch)} books to {out_path}")
-                batch = {}
+                batch = []
                 batch_num += 1
         # Save any remaining books
         if batch:
