@@ -25,7 +25,7 @@ export default function AppRouter() {
           }
         />
         <Route path="/register" element={<RegisterPage onRegister={() => setShowRegister(false)} onBack={() => setShowRegister(false)} />} />
-        <Route path="/chat" element={loggedIn ? <ChatPage /> : <Navigate to="/" />} />
+        <Route path="/chat" element={loggedIn ? <ChatPage onLogout={() => setLoggedIn(false)} /> : <Navigate to="/" />} />
         <Route path="/profile" element={loggedIn ? <UserProfilePage /> : <Navigate to="/" />} />
       </Routes>
     </Router>

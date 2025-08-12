@@ -1,13 +1,16 @@
 import React, { useState } from "react";
-import { FaMicrophone, FaVolumeUp } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { FaMicrophone, FaVolumeUp, FaUserCircle } from "react-icons/fa";
 import "../App.css";
 import LanguageSelector from "./LanguageSelector";
 
-export default function ChatPage() {
+function ChatPage({ onLogout }) {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState("");
   const [language, setLanguage] = useState("english");
   const [listening, setListening] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Handle microphone button click
   const handleMic = async () => {
@@ -112,6 +115,68 @@ export default function ChatPage() {
 
   return (
     <div className="app">
+      {/* Profile icon button top-left */}
+      <button
+        onClick={() => setMenuOpen(v => !v)}
+        style={{
+          position: 'fixed',
+          top: 18,
+          left: 18,
+          zIndex: 1200,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: 0,
+        }}
+        title="Profile menu"
+      >
+        <FaUserCircle size={34} color="#1976d2" />
+      </button>
+
+      {/* Side menu */}
+      {menuOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: 220,
+          height: '100vh',
+          background: 'rgba(255,255,255,0.98)',
+          boxShadow: '2px 0 16px #0002',
+          zIndex: 1300,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '32px 18px 18px 18px',
+          gap: 18,
+        }}>
+          <div style={{fontWeight: 700, fontSize: 18, marginBottom: 18, color: '#1976d2'}}>👤 Profile</div>
+          <button style={{
+            background: 'none',
+            border: 'none',
+            color: '#1976d2',
+            fontSize: 16,
+            textAlign: 'left',
+            marginBottom: 12,
+            cursor: 'pointer',
+            padding: 0,
+          }} onClick={() => {
+            setMenuOpen(false);
+            navigate('/profile');
+          }}>See Profile</button>
+          <button style={{
+            background: 'none',
+            border: 'none',
+            color: '#d32f2f',
+            fontSize: 16,
+            textAlign: 'left',
+            cursor: 'pointer',
+            padding: 0,
+          }} onClick={() => {
+            if (onLogout) onLogout();
+          }}>Logout</button>
+        </div>
+      )}
+
       <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 1000 }}>
         <LanguageSelector language={language} setLanguage={setLanguage} />
       </div>
@@ -191,3 +256,5 @@ export default function ChatPage() {
     </div>
   );
 }
+
+export default ChatPage;
