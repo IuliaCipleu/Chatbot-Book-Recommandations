@@ -13,9 +13,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import chromadb
 import httpx
-from auth.service import insert_user, get_user, login_user, update_user
+from auth.service import insert_user, get_user, login_user, update_user, add_read_book, get_user_read_books
 
-
+# --- User Read Books Endpoints ---
+from fastapi import Query
 
 load_dotenv()
 DB_CONN_STRING = os.environ.get("DB_CONN_STRING", "localhost/freepdb1")
@@ -198,3 +199,49 @@ async def update_user_api(request: Request):
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/add_read_book")
+async def add_read_book_api(request: Request):
+    data = await request.json()
+    try:
+        add_read_book(
+            conn_string=DB_CONN_STRING,
+            db_user=DB_USER,
+            db_password=DB_PASSWORD,
+            username=data["username"],
+            book_title=data["book_title"],
+            rating=data.get("rating")
+        )
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/user_read_books")
+async def user_read_books_api(username: str = Query(...)):
+    try:
+        books = get_user_read_books(
+            conn_string=DB_CONN_STRING,
+            db_user=DB_USER,
+            db_password=DB_PASSWORD,
+            username=username
+        )
+        return {"books": books}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@app.get("/search_titles")
+async def search_titles(q: str = "", limit: int = 10):
+    # Return a list of book titles from ChromaDB matching the query string
+    try:
+        # Get all titles from ChromaDB metadata
+        all_titles = []
+        for doc in collection.get(include=["metadatas"])['metadatas']:
+            if doc and 'title' in doc:
+                all_titles.append(doc['title'])
+        # Filter by query string (case-insensitive substring match)
+        q_lower = q.lower()
+        filtered = [t for t in all_titles if q_lower in t.lower()]
+        filtered = sorted(filtered)[:limit]
+        return {"titles": filtered}
+    except Exception as e:
+        return {"titles": [], "error": str(e)}

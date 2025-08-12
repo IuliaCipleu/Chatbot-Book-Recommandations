@@ -4,6 +4,7 @@ import LoginRegisterPage from "./components/LoginRegisterPage";
 import RegisterPage from "./components/RegisterPage";
 import ChatPage from "./components/ChatPage";
 import UserProfilePage from "./components/UserProfilePage";
+import UserReadBooks from "./components/UserReadBooks";
 
 export default function AppRouter() {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -26,7 +27,8 @@ export default function AppRouter() {
         />
         <Route path="/register" element={<RegisterPage onRegister={() => setShowRegister(false)} onBack={() => setShowRegister(false)} />} />
         <Route path="/chat" element={loggedIn ? <ChatPage onLogout={() => setLoggedIn(false)} /> : <Navigate to="/" />} />
-        <Route path="/profile" element={loggedIn ? <UserProfilePage /> : <Navigate to="/" />} />
+  <Route path="/profile" element={loggedIn ? <UserProfilePage /> : <Navigate to="/" />} />
+  <Route path="/read-books" element={loggedIn ? <UserReadBooks username={JSON.parse(localStorage.getItem('user')||'{}').username} /> : <Navigate to="/" />} />
       </Routes>
     </Router>
   );

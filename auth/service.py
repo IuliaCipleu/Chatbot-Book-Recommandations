@@ -1,3 +1,65 @@
+def add_read_book(conn_string, db_user, db_password, username, book_title, rating=None):
+    """Add a book to the user's read list with optional rating. Creates book if not exists."""
+    try:
+        conn = oracledb.connect(user=db_user, password=db_password, dsn=conn_string)
+        cur = conn.cursor()
+        # Get user_id
+        cur.execute("SELECT user_id FROM users WHERE username = :1", (username,))
+        user_row = cur.fetchone()
+        if not user_row:
+            raise Exception("User not found")
+        user_id = user_row[0]
+        # Get or create book_id
+        cur.execute("SELECT book_id FROM books WHERE title = :1", (book_title,))
+        book_row = cur.fetchone()
+        if book_row:
+            book_id = book_row[0]
+        else:
+            cur.execute("INSERT INTO books (title) VALUES (:1) RETURNING book_id INTO :2", (book_title, cur.var(oracledb.NUMBER)))
+            book_id = cur.getimplicitresults()[0][0]
+        # Insert into user_read_books
+        cur.execute("""
+            MERGE INTO user_read_books ur
+            USING (SELECT :1 AS user_id, :2 AS book_id FROM dual) src
+            ON (ur.user_id = src.user_id AND ur.book_id = src.book_id)
+            WHEN MATCHED THEN UPDATE SET rating = :3, read_date = SYSDATE
+            WHEN NOT MATCHED THEN INSERT (user_id, book_id, read_date, rating) VALUES (:1, :2, SYSDATE, :3)
+        """, (user_id, book_id, rating))
+        conn.commit()
+    except Exception as e:
+        print(f"Failed to add read book: {e}")
+        raise
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
+
+def get_user_read_books(conn_string, db_user, db_password, username):
+    """Get all books read by the user with ratings."""
+    try:
+        conn = oracledb.connect(user=db_user, password=db_password, dsn=conn_string)
+        cur = conn.cursor()
+        cur.execute("SELECT user_id FROM users WHERE username = :1", (username,))
+        user_row = cur.fetchone()
+        if not user_row:
+            return []
+        user_id = user_row[0]
+        cur.execute("""
+            SELECT b.title, ur.rating, ur.read_date
+            FROM user_read_books ur
+            JOIN books b ON ur.book_id = b.book_id
+            WHERE ur.user_id = :1
+            ORDER BY ur.read_date DESC
+        """, (user_id,))
+        return [
+            {"title": row[0], "rating": row[1], "read_date": row[2].strftime('%Y-%m-%d') if row[2] else None}
+            for row in cur.fetchall()
+        ]
+    except Exception as e:
+        print(f"Failed to get user read books: {e}")
+        return []
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
 import oracledb
 from auth.encrypt import hash_password  # make sure this uses bcrypt
 from auth.encrypt import verify_password

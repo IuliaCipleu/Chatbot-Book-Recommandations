@@ -166,6 +166,19 @@ function ChatPage({ onLogout }) {
           <button style={{
             background: 'none',
             border: 'none',
+            color: '#1976d2',
+            fontSize: 16,
+            textAlign: 'left',
+            marginBottom: 12,
+            cursor: 'pointer',
+            padding: 0,
+          }} onClick={() => {
+            setMenuOpen(false);
+            navigate('/read-books');
+          }}>Read Books</button>
+          <button style={{
+            background: 'none',
+            border: 'none',
             color: '#d32f2f',
             fontSize: 16,
             textAlign: 'left',

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import UserReadBooks from "./UserReadBooks";
 import "../App.css";
 
 export default function UserProfilePage() {
@@ -78,6 +79,9 @@ export default function UserProfilePage() {
       <div className="card profile-card">
         <h2>User Profile</h2>
         <p>Loading...</p>
+        <div style={{ marginTop: 32 }}>
+          <UserReadBooks username={user?.username} />
+        </div>
       </div>
     </div>
   );
@@ -112,16 +116,16 @@ export default function UserProfilePage() {
             </label>
             <label>Language:
               <select name="language" value={form.language} onChange={handleChange}>
-                <option value="en">English</option>
-                <option value="ro">Romanian</option>
+                <option value="English">English</option>
+                <option value="Romanian">Romanian</option>
               </select>
             </label>
             <label>Category:
               <select name="profile" value={form.profile} onChange={handleChange}>
-                <option value="child">child</option>
-                <option value="teen">teen</option>
-                <option value="adult">adult</option>
-                <option value="technical">technical</option>
+                <option value="Child">Child</option>
+                <option value="Teen">Teen</option>
+                <option value="Adult">Adult</option>
+                <option value="Technical">Technical</option>
               </select>
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>Voice Enabled:
