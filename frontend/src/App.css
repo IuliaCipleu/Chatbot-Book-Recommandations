@@ -53,11 +53,15 @@
 }
 
 .login-page button[type="submit"] {
-  padding: 14px 0;
-  border-radius: 10px;
-  background: linear-gradient(90deg, #4caf50 60%, #1976d2 100%);
-  color: white;
-  border: none;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: url('/library_robot.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   font-size: 1.08rem;
   font-weight: 600;
   cursor: pointer;
@@ -78,69 +82,6 @@
 
 .login-page button {
   background: none;
-  border: none;
-  color: #1976d2;
-  cursor: pointer;
-  text-decoration: underline;
-  font-size: 1rem;
-  padding: 0 4px;
-  transition: color 0.2s;
-}
-.login-page button:hover {
-  color: #4caf50;
-}
-/* Login/Register page styling to match chat theme */
-.login-page {
-  max-width: 400px;
-  margin: 80px auto 0 auto;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(5px);
-  border-radius: 16px;
-  box-shadow: 0 4px 24px #0002;
-  padding: 32px 28px 24px 28px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.login-page h2 {
-  margin-bottom: 24px;
-}
-
-.login-page form {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.login-page input[type="text"],
-.login-page input[type="password"] {
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  font-size: 1rem;
-}
-
-.login-page button[type="submit"] {
-  padding: 12px 0;
-  border-radius: 8px;
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-  margin-top: 8px;
-  transition: background 0.2s;
-}
-.login-page button[type="submit"]:hover {
-  background-color: #45a049;
-}
-
-.login-page p {
-  margin-top: 12px;
-  font-size: 0.98rem;
 }
 
 .login-page button {

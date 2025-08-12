@@ -123,9 +123,9 @@ async def register(request: Request):
     data = await request.json()
     try:
         insert_user(
-            conn_string="localhost/orclpdb1",
-            db_user="chatbot_user",
-            db_password="yourStrongPassword123",
+            conn_string="localhost/freepdb1",
+            db_user="SYSTEM",
+            db_password="new_password",
             username=data["username"],
             email=data["email"],
             plain_password=data["password"],
@@ -141,9 +141,9 @@ async def register(request: Request):
 async def login(request: Request):
     data = await request.json()
     user = login_user(
-        conn_string="localhost/orclpdb1",
-        db_user="chatbot_user",
-        db_password="yourStrongPassword123",
+        conn_string="localhost/freepdb1",
+        db_user="SYSTEM",
+        db_password="new_password",
         username=data["username"],
         plain_password=data["password"]
     )
