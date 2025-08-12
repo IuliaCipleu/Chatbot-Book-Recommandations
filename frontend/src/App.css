@@ -53,7 +53,7 @@
 }
 
 .login-page button[type="submit"] {
-  min-height: 100vh;
+  min-height: 7vh;
   display: flex;
   align-items: center;
   justify-content: center;
