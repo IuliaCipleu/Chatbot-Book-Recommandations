@@ -39,6 +39,12 @@ export default function UserReadBooks({ username }) {
     fetchAllBooks();
   }, [allPage, searchAll]);
 
+  // Always fetch list of read books on mount
+  useEffect(() => {
+    fetchBooks();
+    // eslint-disable-next-line
+  }, []);
+
   // No need to filter/sort here, backend does it
   function filteredAllBooks() {
     return allBooks;
@@ -53,11 +59,15 @@ export default function UserReadBooks({ username }) {
 
   async function handleAddFromAll(title) {
     setError(null); setSuccess(null);
+    if (!addRating || isNaN(Number(addRating)) || Number(addRating) < 1 || Number(addRating) > 5) {
+      setError("Please enter a rating (1-5) before marking as read.");
+      return;
+    }
     try {
       const res = await fetch("http://localhost:8000/add_read_book", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, book_title: title, rating: addRating ? Number(addRating) : null })
+        body: JSON.stringify({ username, book_title: title, rating: Number(addRating) })
       });
       if (!res.ok) throw new Error((await res.json()).detail || "Failed to add book.");
       setSuccess("Book added!");
@@ -142,12 +152,13 @@ export default function UserReadBooks({ username }) {
   return (
     <div className="read-books-card" style={{
       background: '#f5f7fb',
-      borderRadius: 12,
+      borderRadius: 26,
       boxShadow: '0 2px 12px #0001',
       border: '1px solid #d0d7e2',
       padding: 24,
-      margin: '0 auto',
-      maxWidth: 1400,
+      margin: '10px auto',
+      width: '55vw',
+      maxWidth: 'none',
       marginBottom: 24
     }}>
       <h3 style={{ marginTop: 0, marginBottom: 14, color: '#1976d2', textAlign: 'center' }}>Books You've Read</h3>
@@ -169,14 +180,15 @@ export default function UserReadBooks({ username }) {
               top: '100%',
               left: 0,
               right: 0,
-              background: '#fff',
+              background: '#ffffff57',
+              color: '#000',
               border: '1px solid #bbb',
               borderRadius: 6,
               zIndex: 10,
               maxHeight: 180,
               overflowY: 'auto',
-              margin: 0,
-              padding: 0,
+              margin: 150,
+              padding: 150,
               listStyle: 'none',
               boxShadow: '0 2px 8px #0002'
             }}>
@@ -197,8 +209,8 @@ export default function UserReadBooks({ username }) {
         />
         <button type="submit" style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontWeight: 500, cursor: 'pointer' }}>Add</button>
       </form>
-      {error && <div className="error-message">{error}</div>}
-      {success && <div className="success-message">{success}</div>}
+  {error && <div className="error-message" style={{ color: '#000' }}>{error}</div>}
+  {success && <div className="success-message" style={{ color: '#000' }}>{success}</div>}
       <div style={{ overflowX: 'auto', marginBottom: 32 }}>
         <h3 style={{ marginTop: 30, marginBottom: 10, color: '#1976d2', textAlign: 'center' }}>All Books in Library</h3>
         <div style={{ display: 'flex', gap: 10, marginBottom: 10, justifyContent: 'center' }}>
@@ -242,13 +254,13 @@ export default function UserReadBooks({ username }) {
                 </tr>
               ))}
         {/* Pagination controls for All Books */}
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, margin: '12px 0' }}>
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, margin: '12px 0' }}>
           <button
             onClick={() => setAllPage(p => Math.max(1, p - 1))}
             disabled={allPage === 1}
             style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid #bbb', background: allPage === 1 ? '#eee' : '#fff', color: '#1976d2', cursor: allPage === 1 ? 'not-allowed' : 'pointer', fontSize: 18 }}
           >&lt;-</button>
-          <span style={{ fontWeight: 600, color: '#1976d2', fontSize: 18 }}>
+          <span style={{ fontWeight: 600, color: '#1976d2', fontSize: 18, minWidth: 120, textAlign: 'center', display: 'inline-block' }}>
             Page {allPage} of {Math.max(1, Math.ceil(allTotal / ALL_PER_PAGE))}
           </span>
           <button
@@ -281,8 +293,8 @@ export default function UserReadBooks({ username }) {
             {sortBooks(books).map((b, i) => (
               <tr key={i}>
                 <td style={{ padding: 8, borderBottom: '1px solid #eee', color: '#000' }}>{b.title}</td>
-                <td style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'center' }}>{b.rating ? b.rating + '/5' : ''}</td>
-                <td style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'center' }}>{b.read_date}</td>
+                <td style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'center', color: '#000' }}>{b.rating ? b.rating + '/5' : ''}</td>
+                <td style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'center', color: '#000' }}>{b.read_date}</td>
               </tr>
             ))}
           </tbody>

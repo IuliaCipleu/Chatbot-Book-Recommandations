@@ -1,3 +1,5 @@
+from fastapi import Body
+
 from fastapi import Body, HTTPException
 import openai
 import os
@@ -7,7 +9,7 @@ from search.summary_tool import get_summary_by_title
 from utils.openai_config import load_openai_key
 from utils.voice_input import listen_with_whisper
 from utils.image_generator import generate_image_from_summary
-from utils.filter import is_appropriate, infer_reader_profile, sanitize_for_image_prompt
+from utils.filter import is_appropriate, infer_reader_profile, sanitize_for_image_prompt, is_similar_to_high_rated
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -43,6 +45,7 @@ async def recommend(request: Request):
     data = await request.json()
     query = data.get("query")
     role = data.get("role")
+    username = data.get("username")
     if not role:
         # Infer user profile from the query
         role = infer_reader_profile(query)
@@ -57,14 +60,55 @@ async def recommend(request: Request):
             # Otherwise, fallback to adult for compatibility
             role = "adult"
     language = data.get("language", "english")
-    results = search_books(query, collection, top_k=5)
+
+    # Get user's read books and ratings if username is provided
+    read_titles = set()
+    high_rated_books = []
+    if username:
+        try:
+            user_books = get_user_read_books(
+                conn_string=DB_CONN_STRING,
+                db_user=DB_USER,
+                db_password=DB_PASSWORD,
+                username=username
+            )
+            for b in user_books:
+                read_titles.add(b["title"])
+                if b.get("rating") and b["rating"] >= 4:
+                    # Try to get genre, author, summary if available
+                    high_rated_books.append({
+                        "title": b["title"],
+                        "genre": b.get("genre"),
+                        "author": b.get("author"),
+                        "summary": b.get("summary")
+                    })
+        except Exception:
+            pass
+
+    # Use user profile to bias search if no query
+    search_query = query
+    if not search_query and role:
+        search_query = role
+
+    results = search_books(search_query, collection, top_k=10)
     ids = results["ids"][0]
     metadatas = results["metadatas"][0]
-    for idx, _ in enumerate(ids):
-        title = metadatas[idx]["title"]
+
+    # Filter out already read books
+    candidates = [
+        (idx, meta)
+        for idx, meta in enumerate(metadatas)
+        if meta["title"] not in read_titles
+    ]
+
+    # Sort: prefer similar to high rated, then by original order
+    candidates = sorted(candidates, key=lambda x: (not is_similar_to_high_rated(x[1], high_rated_books), x[0]))
+
+    for idx, meta in candidates:
+        title = meta["title"]
         summary = get_summary_by_title(title)
         if summary and summary.strip() and summary != "Summary not found." and is_appropriate(summary, role):
-            image_url = metadatas[idx].get("image_url")
+            image_url = meta.get("image_url")
             if not image_url:
                 # Translate to English if needed
                 if language == "romanian":
@@ -91,7 +135,7 @@ async def recommend(request: Request):
                 if image_url:
                     collection.update(
                         ids=[title],
-                        metadatas=[{**metadatas[idx], "image_url": image_url}]
+                        metadatas=[{**meta, "image_url": image_url}]
                     )
             return {"title": title, "summary": summary, "image_url": image_url}
     return {"error": "No suitable book found."}
@@ -247,3 +291,20 @@ async def search_titles(q: str = "", limit: int = 15, offset: int = 0):
         return {"titles": paged, "total": total, "offset": offset, "limit": limit}
     except Exception as e:
         return {"titles": [], "error": str(e), "total": 0, "offset": offset, "limit": limit}
+    
+# Add Read Book endpoint
+@app.post("/add_read_book")
+async def add_read_book_api(request: Request):
+    data = await request.json()
+    try:
+        add_read_book(
+            conn_string=DB_CONN_STRING,
+            db_user=DB_USER,
+            db_password=DB_PASSWORD,
+            username=data["username"],
+            book_title=data["book_title"],
+            rating=data.get("rating")
+        )
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

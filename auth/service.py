@@ -15,16 +15,16 @@ def add_read_book(conn_string, db_user, db_password, username, book_title, ratin
         if book_row:
             book_id = book_row[0]
         else:
-            cur.execute("INSERT INTO books (title) VALUES (:1) RETURNING book_id INTO :2", (book_title, cur.var(oracledb.NUMBER)))
-            book_id = cur.getimplicitresults()[0][0]
+            # Instead of inserting, return a message to the user
+            raise Exception("Unfortunately, this book is not included in our DB. We are working on this.")
         # Insert into user_read_books
         cur.execute("""
             MERGE INTO user_read_books ur
-            USING (SELECT :1 AS user_id, :2 AS book_id FROM dual) src
+            USING (SELECT :user_id AS user_id, :book_id AS book_id FROM dual) src
             ON (ur.user_id = src.user_id AND ur.book_id = src.book_id)
-            WHEN MATCHED THEN UPDATE SET rating = :3, read_date = SYSDATE
-            WHEN NOT MATCHED THEN INSERT (user_id, book_id, read_date, rating) VALUES (:1, :2, SYSDATE, :3)
-        """, (user_id, book_id, rating))
+            WHEN MATCHED THEN UPDATE SET rating = :rating, read_date = SYSDATE
+            WHEN NOT MATCHED THEN INSERT (user_id, book_id, read_date, rating) VALUES (:user_id, :book_id, SYSDATE, :rating)
+        """, {"user_id": user_id, "book_id": book_id, "rating": rating})
         conn.commit()
     except Exception as e:
         print(f"Failed to add read book: {e}")

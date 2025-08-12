@@ -103,3 +103,45 @@ def sanitize_for_image_prompt(text):
     if len(sanitized) > 300:
         sanitized = sanitized[:297] + '...'
     return sanitized
+
+# Prefer books similar to those highly rated by the user (improved: genre/author/theme via summary keyword overlap)
+def is_similar_to_high_rated(meta, high_rated_books):
+    """
+    meta: metadata dict for candidate book
+    high_rated_books: list of dicts with keys 'title', 'genre', 'author', 'summary'
+    Returns True if candidate is similar to any high rated book by genre, author, or summary theme.
+    """
+    candidate_genre = meta.get("genre", "").lower() if meta.get("genre") else ""
+    candidate_author = meta.get("author", "").lower() if meta.get("author") else ""
+    candidate_summary = meta.get("summary", "").lower() if meta.get("summary") else ""
+    # Fallback: try to get summary by title if not present
+    if not candidate_summary and meta.get("title"):
+        try:
+            from search.summary_tool import get_summary_by_title
+            candidate_summary = get_summary_by_title(meta["title"]).lower()
+        except Exception:
+            candidate_summary = ""
+
+    for b in high_rated_books:
+        b_genre = b.get("genre", "").lower() if b.get("genre") else ""
+        b_author = b.get("author", "").lower() if b.get("author") else ""
+        b_summary = b.get("summary", "").lower() if b.get("summary") else ""
+        # Genre or author match
+        if candidate_genre and b_genre and candidate_genre == b_genre:
+            return True
+        if candidate_author and b_author and candidate_author == b_author:
+            return True
+        # Theme similarity: keyword overlap in summaries
+        if candidate_summary and b_summary:
+            # Use set of keywords (remove stopwords, short words)
+            def keywords(text):
+                stopwords = set(["the","a","an","and","of","in","on","to","for","with","by","at","from","is","it","as","that","this","was","are","be","or","but","if","not","into","their","his","her","its","they","them","he","she","you","we","our","your","i"])
+                return set(w for w in re.findall(r"\b\w{4,}\b", text) if w not in stopwords)
+            cand_kw = keywords(candidate_summary)
+            b_kw = keywords(b_summary)
+            if cand_kw and b_kw:
+                overlap = cand_kw & b_kw
+                # If there is significant overlap, consider similar (threshold: 5 words or 20% of candidate keywords)
+                if len(overlap) >= 5 or (len(cand_kw) > 0 and len(overlap) / len(cand_kw) > 0.2):
+                    return True
+    return False
