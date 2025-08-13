@@ -65,3 +65,63 @@ def test_is_offensive_word_boundary():
         # Should not match 'badly' as 'bad' (split by space)
         assert not filter_mod.is_offensive("He behaved badly.")
         assert filter_mod.is_offensive("He is bad.")
+
+def test_is_similar_to_high_rated_genre_match():
+    meta = {"genre": "Fantasy"}
+    high_rated_books = [{"genre": "fantasy"}]
+    assert filter_mod.is_similar_to_high_rated(meta, high_rated_books) is True
+
+def test_is_similar_to_high_rated_author_match():
+    meta = {"author": "J.K. Rowling"}
+    high_rated_books = [{"author": "j.k. rowling"}]
+    assert filter_mod.is_similar_to_high_rated(meta, high_rated_books) is True
+
+def test_is_similar_to_high_rated_summary_overlap_threshold():
+    meta = {"summary": "Magic school adventure friendship courage wizard"}
+    high_rated_books = [{"summary": "wizard magic school courage adventure"}]
+    # 5 overlapping keywords
+    assert filter_mod.is_similar_to_high_rated(meta, high_rated_books) is True
+
+def test_is_similar_to_high_rated_summary_overlap_percent():
+    meta = {"summary": "apple banana orange grape pear"}
+    high_rated_books = [{"summary": "banana orange grape"}]
+    # 3/5 = 0.6 > 0.2
+    assert filter_mod.is_similar_to_high_rated(meta, high_rated_books) is True
+
+def test_is_similar_to_high_rated_no_match():
+    meta = {"genre": "Sci-Fi", "author": "Isaac Asimov", "summary": "robots future space"}
+    high_rated_books = [{"genre": "Fantasy", "author": "J.K. Rowling", "summary": "magic school"}]
+    assert filter_mod.is_similar_to_high_rated(meta, high_rated_books) is False
+
+def test_is_similar_to_high_rated_empty_high_rated_books():
+    meta = {"genre": "Fantasy", "author": "J.K. Rowling", "summary": "magic school"}
+    high_rated_books = []
+    assert filter_mod.is_similar_to_high_rated(meta, high_rated_books) is False
+
+def test_is_similar_to_high_rated_fallback_summary(monkeypatch):
+    meta = {"title": "Book X"}
+    high_rated_books = [{"summary": "adventure magic"}]
+    # Patch get_summary_by_title to return a summary
+    monkeypatch.setattr(filter_mod, "get_summary_by_title", lambda title: "magic adventure")
+    assert filter_mod.is_similar_to_high_rated(meta, high_rated_books) is True
+
+def test_is_similar_to_high_rated_fallback_summary_exception(monkeypatch):
+    meta = {"title": "Book Y"}
+    high_rated_books = [{"summary": "adventure magic"}]
+    # Patch get_summary_by_title to raise exception
+    monkeypatch.setattr(filter_mod, "get_summary_by_title", lambda title: (_ for _ in ()).throw(Exception("fail")))
+    assert filter_mod.is_similar_to_high_rated(meta, high_rated_books) is False
+
+def test_is_similar_to_high_rated_short_keywords():
+    meta = {"summary": "cat dog bat rat"}
+    high_rated_books = [{"summary": "cat dog bat rat"}]
+    # All words are short, should be filtered out, so no overlap
+    assert filter_mod.is_similar_to_high_rated(meta, high_rated_books) is False
+
+def test_is_similar_to_high_rated_stopwords_filtered():
+    meta = {"summary": "the magic of friendship and courage"}
+    high_rated_books = [{"summary": "magic friendship courage"}]
+    # Stopwords should be filtered, overlap on magic, friendship, courage
+    assert filter_mod.is_similar_to_high_rated(meta, high_rated_books) is True
+
+
