@@ -308,6 +308,8 @@ async def delete_user_api(request: Request, credentials: HTTPAuthorizationCreden
             username=username
         )
         return {"success": True}
+    except HTTPException as e:
+        raise e
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 

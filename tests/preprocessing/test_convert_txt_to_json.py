@@ -1,7 +1,6 @@
 import os
 import tempfile
 import json
-import pytest
 from preprocessing.convert_txt_to_json import parse_cmu_book_summary
 
 def make_sample_txt(content):

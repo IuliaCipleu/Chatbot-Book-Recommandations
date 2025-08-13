@@ -436,3 +436,179 @@ def test_update_user_exception(mock_update_user, mock_verify_token, patch_depend
     assert "DB error" in data["detail"]
 
 
+@patch("api_server.verify_token", return_value="testuser")
+@patch("api_server.delete_user")
+def test_delete_user_success(mock_delete_user, mock_verify_token, patch_dependencies):
+    # User deletes their own account
+    response = client.post(
+        "/delete_user",
+        json={"username": "testuser"},
+        headers={"Authorization": "Bearer testtoken"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data == {"success": True}
+    mock_delete_user.assert_called_once_with(
+        conn_string=DB_CONN_STRING,
+        db_user=DB_USER,
+        db_password=DB_PASSWORD,
+        username="testuser"
+    )
+
+@patch("api_server.verify_token", return_value="testuser")
+@patch("api_server.delete_user")
+def test_delete_user_unauthorized(mock_delete_user, mock_verify_token, patch_dependencies):
+    # User tries to delete another user's account
+    response = client.post(
+        "/delete_user",
+        json={"username": "otheruser"},
+        headers={"Authorization": "Bearer testtoken"}
+    )
+    assert response.status_code == 403
+    data = response.json()
+    assert data["detail"] == "Unauthorized user deletion"
+    mock_delete_user.assert_not_called()
+
+@patch("api_server.verify_token", return_value="testuser")
+@patch("api_server.delete_user")
+def test_delete_user_exception(mock_delete_user, mock_verify_token, patch_dependencies):
+    # Simulate exception in delete_user
+    mock_delete_user.side_effect = Exception("DB error")
+    response = client.post(
+        "/delete_user",
+        json={"username": "testuser"},
+        headers={"Authorization": "Bearer testtoken"}
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert "DB error" in data["detail"]
+
+@patch("api_server.verify_token", return_value="testuser")
+@patch("api_server.delete_user")
+def test_delete_user_missing_username(mock_delete_user, mock_verify_token, patch_dependencies):
+    # Missing username in request body
+    response = client.post(
+        "/delete_user",
+        json={},
+        headers={"Authorization": "Bearer testtoken"}
+    )
+    assert response.status_code == 403
+    data = response.json()
+    assert data["detail"] == "Unauthorized user deletion"
+    mock_delete_user.assert_not_called()
+
+
+@patch("api_server.insert_user")
+def test_register_success(mock_insert_user, patch_dependencies):
+    response = client.post(
+        "/register",
+        json={
+            "username": "alice",
+            "email": "alice@endava.com",
+            "password": "Password123!",
+            "language": "english",
+            "profile": "teen",
+            "voice_enabled": True
+        }
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data == {"success": True}
+    mock_insert_user.assert_called_once_with(
+        conn_string=DB_CONN_STRING,
+        db_user=DB_USER,
+        db_password=DB_PASSWORD,
+        username="alice",
+        email="alice@endava.com",
+        plain_password="Password123!",
+        language="english",
+        profile="teen",
+        voice_enabled=True
+    )
+
+@patch("api_server.insert_user")
+def test_register_missing_fields(mock_insert_user, patch_dependencies):
+    # Missing username, email, or password should raise 400
+    response = client.post(
+        "/register",
+        json={"username": "bob", "email": "bob@endava.com"}
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert "detail" in data
+    mock_insert_user.assert_not_called()
+
+@patch("api_server.insert_user")
+def test_register_exception(mock_insert_user, patch_dependencies):
+    mock_insert_user.side_effect = Exception("DB error")
+    response = client.post(
+        "/register",
+        json={
+            "username": "carol",
+            "email": "carol@endava.com",
+            "password": "Password123!"
+        }
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert "DB error" in data["detail"]
+
+@patch("api_server.collection")
+def test_search_titles_success(mock_collection, patch_dependencies):
+    # Setup mock collection.get to return metadatas with titles
+    mock_collection.get.return_value = {
+        "metadatas": [
+            {"title": "Book A"},
+            {"title": "Book B"},
+            {"title": "Another Book"}
+        ]
+    }
+    response = client.get("/search_titles?q=book&limit=2&offset=0")
+    assert response.status_code == 200
+    data = response.json()
+    assert "titles" in data
+    assert data["total"] == 3
+    assert data["offset"] == 0
+    assert data["limit"] == 2
+    # Should be sorted and filtered
+    assert set(data["titles"]) <= {"Book A", "Book B", "Another Book"}
+
+@patch("api_server.collection")
+def test_search_titles_pagination(mock_collection, patch_dependencies):
+    mock_collection.get.return_value = {
+        "metadatas": [
+            {"title": f"Book {i}"} for i in range(1, 21)
+        ]
+    }
+    response = client.get("/search_titles?q=Book&limit=5&offset=10")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["limit"] == 5
+    assert data["offset"] == 10
+    assert len(data["titles"]) == 5
+
+@patch("api_server.collection")
+def test_search_titles_no_match(mock_collection, patch_dependencies):
+    mock_collection.get.return_value = {
+        "metadatas": [
+            {"title": "Book X"},
+            {"title": "Book Y"}
+        ]
+    }
+    response = client.get("/search_titles?q=zzz")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["titles"] == []
+    assert data["total"] == 0
+
+@patch("api_server.collection")
+def test_search_titles_error_handling(mock_collection, patch_dependencies):
+    mock_collection.get.side_effect = KeyError("fail")
+    response = client.get("/search_titles?q=Book")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["titles"] == []
+    assert "error" in data
+
+
+
