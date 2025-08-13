@@ -165,4 +165,3 @@ def test_main_flow_romanian(monkeypatch):
     assert any("Carte recomandată: Fetița Curajoasă [ro]" in line for line in printed)
     assert any("Rezumat:" in line for line in printed)
     assert any("Imagine generată: http://img.com/romanian.png" in line for line in printed)
-    

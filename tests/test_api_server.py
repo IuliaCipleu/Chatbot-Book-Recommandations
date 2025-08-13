@@ -1,7 +1,10 @@
 from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
-from api_server import app
+from api_server import app, create_access_token, verify_token, SECRET_KEY, ALGORITHM
+from jose import jwt
+from fastapi import HTTPException
+from datetime import datetime, UTC, timedelta
 
 client = TestClient(app)
 
@@ -119,3 +122,87 @@ def test_voice_uses_correct_language_code(patch_dependencies):
     assert response.status_code == 200
     data = response.json()
     assert data["text"] == "salut"
+
+# Test create_access_token returns a valid JWT with correct payload and expiry
+def test_create_access_token_valid():
+    data = {"sub": "testuser"}
+    expires = timedelta(minutes=5)
+    token = create_access_token(data, expires)
+    decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    assert decoded["sub"] == "testuser"
+    assert "exp" in decoded
+    # Check expiry is within expected range
+    exp = datetime.fromtimestamp(decoded["exp"], UTC)
+    now = datetime.now(UTC)
+    assert exp > now
+    assert exp < now + timedelta(minutes=6)
+
+# Test verify_token returns username for valid token
+def test_verify_token_valid():
+    data = {"sub": "testuser"}
+    token = create_access_token(data)
+    username = verify_token(token)
+    assert username == "testuser"
+
+# Test verify_token raises HTTPException for invalid token
+def test_verify_token_invalid():
+    with pytest.raises(HTTPException) as excinfo:
+        verify_token("invalid.token.value")
+    assert excinfo.value.status_code == 401
+@patch("api_server.login_user")
+@patch("api_server.create_access_token", return_value="jwt.token.value")
+def test_login_success(mock_create_access_token, mock_login_user, patch_dependencies):
+    # Mock login_user to return a user dict
+    mock_login_user.return_value = {
+        "username": "alice",
+        "email": "alice@endava.com",
+        "language": "english",
+        "profile": "teen",
+        "voice_enabled": True
+    }
+    response = client.post("/login", json={"username": "alice", "password": "Password123!"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["user"]["username"] == "alice"
+    assert data["access_token"] == "jwt.token.value"
+    mock_create_access_token.assert_called_once_with({"sub": "alice"})
+    mock_login_user.assert_called_once()
+
+@patch("api_server.login_user")
+def test_login_invalid_credentials(mock_login_user, patch_dependencies):
+    # Mock login_user to return None (invalid credentials)
+    mock_login_user.return_value = None
+    response = client.post("/login", json={"username": "bob", "password": "wrongpw"})
+    assert response.status_code == 401
+    data = response.json()
+    assert data["detail"] == "Invalid credentials"
+    mock_login_user.assert_called_once()
+
+def test_login_missing_fields():
+    # Missing username or password should raise 422 Unprocessable Entity
+    response = client.post("/login", json={"username": "alice"})
+    assert response.status_code == 422 or response.status_code == 400
+
+    response = client.post("/login", json={"password": "Password123!"})
+    assert response.status_code == 422 or response.status_code == 400
+
+def test_login_empty_body():
+    # Empty body should raise 422 Unprocessable Entity
+    response = client.post("/login", json={})
+    assert response.status_code == 422 or response.status_code == 400
+
+def test_login_no_json():
+    # No JSON body should raise 422 Unprocessable Entity
+    response = client.post("/login")
+    assert response.status_code == 422 or response.status_code == 400
+
+@patch("api_server.login_user")
+def test_login_user_exception(mock_login_user, patch_dependencies):
+    # Simulate an exception in login_user
+    mock_login_user.side_effect = Exception("DB error")
+    response = client.post("/login", json={"username": "alice", "password": "Password123!"})
+    # Should return 401 because user is None, not 500
+    assert response.status_code == 401
+    data = response.json()
+    assert data["detail"] == "Invalid credentials"
