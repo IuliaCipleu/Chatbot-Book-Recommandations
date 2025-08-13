@@ -20,8 +20,8 @@ EXCLUSION_KEYWORDS = {
 
 def is_appropriate(summary, profile):
     """
-    Determines if a book summary is appropriate for a given user profile by checking for the presence of
-    banned keywords.
+    Determines if a book summary is appropriate for a given user profile by checking for the
+    presence of banned keywords.
 
     Args:
         summary (str): The summary text of the book to be evaluated.
@@ -133,7 +133,6 @@ def is_similar_to_high_rated(meta, high_rated_books):
     # Fallback: try to get summary by title if not present
     if not candidate_summary and meta.get("title"):
         try:
-            
             candidate_summary = get_summary_by_title(meta["title"]).lower()
         except Exception:
             candidate_summary = ""

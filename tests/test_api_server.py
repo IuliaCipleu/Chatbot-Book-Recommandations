@@ -1,12 +1,14 @@
-from unittest.mock import patch
-import pytest
-from fastapi.testclient import TestClient
-from api_server import app, create_access_token, verify_token, SECRET_KEY, ALGORITHM
-from jose import jwt
-from fastapi import HTTPException
-from datetime import datetime, UTC, timedelta
 import os
+from datetime import datetime, timedelta, UTC
+
+import pytest
 from dotenv import load_dotenv
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
+from jose import jwt
+from unittest.mock import patch
+
+from api_server import app, create_access_token, verify_token, SECRET_KEY, ALGORITHM
 
 load_dotenv()
 DB_CONN_STRING = os.environ.get("DB_CONN_STRING", "localhost/freepdb1")
@@ -236,7 +238,8 @@ def test_add_read_book_success(mock_add_read_book, mock_verify_token, patch_depe
 
 @patch("api_server.verify_token", return_value="testuser")
 @patch("api_server.add_read_book")
-def test_add_read_book_missing_book_title(mock_add_read_book, mock_verify_token, patch_dependencies):
+def test_add_read_book_missing_book_title(mock_add_read_book, mock_verify_token,
+                                          patch_dependencies):
     response = client.post(
         "/add_read_book",
         json={"rating": 4},
@@ -314,7 +317,8 @@ def test_user_read_books_db_error(mock_get_user_read_books, mock_verify_token, p
 
 @patch("api_server.openai.chat.completions.create")
 def test_translate_english_to_romanian(mock_openai_create):
-    mock_openai_create.return_value.choices = [type("obj", (), {"message": type("obj", (), {"content": "Salut lume!"})})]
+    mock_openai_create.return_value.choices = [type("obj", (), {"message": type("obj", (),
+                                                            {"content": "Salut lume!"})})]
     response = client.post("/translate", json={"text": "Hello world!", "target_lang": "romanian"})
     assert response.status_code == 200
     data = response.json()
@@ -323,7 +327,8 @@ def test_translate_english_to_romanian(mock_openai_create):
 
 @patch("api_server.openai.chat.completions.create")
 def test_translate_romanian_to_english(mock_openai_create):
-    mock_openai_create.return_value.choices = [type("obj", (), {"message": type("obj", (), {"content": "Hello world!"})})]
+    mock_openai_create.return_value.choices = [type("obj", (), {"message": type("obj", (),
+                                            {"content": "Hello world!"})})]
     response = client.post("/translate", json={"text": "Salut lume!", "target_lang": "english"})
     assert response.status_code == 200
     data = response.json()
@@ -609,6 +614,4 @@ def test_search_titles_error_handling(mock_collection, patch_dependencies):
     data = response.json()
     assert data["titles"] == []
     assert "error" in data
-
-
 

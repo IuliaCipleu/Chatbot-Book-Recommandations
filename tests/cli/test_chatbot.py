@@ -158,7 +158,8 @@ def test_main_flow_romanian(monkeypatch):
         "O poveste despre curaj și bunătate.")
     monkeypatch.setattr(chatbot, "generate_image_from_summary", lambda t, s: 
         "http://img.com/romanian.png")
-    monkeypatch.setattr(chatbot, "translate", lambda t, lang: t + " [ro]" if lang == "romanian" else t)
+    monkeypatch.setattr(chatbot, "translate", lambda t,
+                        lang: t + " [ro]" if lang == "romanian" else t)
     printed = []
     monkeypatch.setattr(builtins, "print", lambda *a, **k: printed.append(" ".join(map(str, a))))
     chatbot.main()

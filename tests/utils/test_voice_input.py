@@ -52,7 +52,8 @@ def test_listen_with_whisper_cleanup_exception(
 
 def mock_audio(**kwargs):
     # Return a numpy array of zeros (simulate silence)
-    return np.zeros((int(kwargs.get('samplerate', 16000) * kwargs.get('duration', 5)), 1), dtype='float32')
+    return np.zeros((int(kwargs.get('samplerate', 16000) * kwargs.get('duration', 5)), 1),
+                    dtype='float32')
 
 def test_listen_with_whisper_success_monkeypatch(monkeypatch, tmp_path):
     # Patch dependencies
@@ -97,7 +98,8 @@ def test_listen_with_whisper_transcribe_exception(monkeypatch, tmp_path):
     mock_model = mock.MagicMock()
     mock_model.transcribe.side_effect = Exception("fail")
     monkeypatch.setattr(voice_input.whisper, "load_model", lambda name: mock_model)
-    monkeypatch.setattr(voice_input.sd, "rec", lambda *a, **k: mock_audio(duration=a[0]/k['samplerate'], samplerate=k['samplerate']))
+    monkeypatch.setattr(voice_input.sd, "rec", lambda *a,
+                        **k: mock_audio(duration=a[0]/k['samplerate'], samplerate=k['samplerate']))
     monkeypatch.setattr(voice_input.sd, "wait", lambda: None)
     monkeypatch.setattr(voice_input.os, "remove", lambda path: None)
     orig_wave_open = wave.open
@@ -111,7 +113,8 @@ def test_listen_with_whisper_remove_exception(monkeypatch, tmp_path):
     mock_model = mock.MagicMock()
     mock_model.transcribe.return_value = {"text": "hi"}
     monkeypatch.setattr(voice_input.whisper, "load_model", lambda name: mock_model)
-    monkeypatch.setattr(voice_input.sd, "rec", lambda *a, **k: mock_audio(duration=a[0]/k['samplerate'], samplerate=k['samplerate']))
+    monkeypatch.setattr(voice_input.sd, "rec", lambda *a,
+                        **k: mock_audio(duration=a[0]/k['samplerate'], samplerate=k['samplerate']))
     monkeypatch.setattr(voice_input.sd, "wait", lambda: None)
     def raise_remove(path):
         raise OSError("fail remove")
@@ -122,5 +125,3 @@ def test_listen_with_whisper_remove_exception(monkeypatch, tmp_path):
     monkeypatch.setattr(voice_input.wave, "open", fake_wave_open)
     result = voice_input.listen_with_whisper(duration=0.01)
     assert result == "hi"
-    
-    

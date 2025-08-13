@@ -393,14 +393,3 @@ def test_get_user_read_books_exception_in_fetchall(mock_connect, capsys):
     assert "Failed to get user read books: Fetchall error" in captured.out
     mock_cursor.close.assert_called_once()
     mock_conn.close.assert_called_once()
-
-
-
-
-
-
-
-
-
-
-

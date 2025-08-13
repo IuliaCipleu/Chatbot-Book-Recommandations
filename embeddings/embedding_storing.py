@@ -28,8 +28,6 @@ import chromadb
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.openai_config import load_openai_key
 
-
-
 # Folder containing JSON batches
 BATCHES_DIR = "data/batches"
 CHROMA_DIR = "./chroma_db"

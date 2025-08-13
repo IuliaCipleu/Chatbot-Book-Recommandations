@@ -34,7 +34,8 @@ def test_search_books_success(_, mock_openai, mock_collection_fixture):
 
 @patch("search.retriever.openai")
 @patch("search.retriever.load_openai_key")
-def test_search_books_loads_api_key_if_missing(mock_load_key, mock_openai, mock_collection, mock_collection_fixture):
+def test_search_books_loads_api_key_if_missing(mock_load_key, mock_openai, mock_collection,
+                                               mock_collection_fixture):
     # Simulate missing API key initially, then set after loading
     mock_openai.api_key = None
     def set_key():

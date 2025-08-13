@@ -1,8 +1,8 @@
-import pytest
 from unittest.mock import patch, MagicMock
 import embeddings.embedding_storing as es
 import json
 import openai
+import pytest
 
 def test_init_chroma():
     mock_client = MagicMock()
@@ -41,7 +41,8 @@ def test_embed_and_store_in_batches(monkeypatch):
     class DummyResp:
         def __init__(self, emb):
             self.data = [MagicMock(embedding=emb)]
-    monkeypatch.setattr("embeddings.embedding_storing.openai.embeddings.create", lambda **kwargs: DummyResp([1.0, 2.0, 3.0]))
+    monkeypatch.setattr("embeddings.embedding_storing.openai.embeddings.create", lambda **kwargs:
+        DummyResp([1.0, 2.0, 3.0]))
     # Patch print to suppress output
     monkeypatch.setattr("builtins.print", lambda *a, **k: None)
     es.embed_and_store_in_batches(collection, summaries, batch_size=1, resume=False)
@@ -58,7 +59,8 @@ def test_embed_and_store_in_batches_resume(monkeypatch):
     class DummyResp:
         def __init__(self, emb):
             self.data = [MagicMock(embedding=emb)]
-    monkeypatch.setattr("embeddings.embedding_storing.openai.embeddings.create", lambda **kwargs: DummyResp([1.0, 2.0, 3.0]))
+    monkeypatch.setattr("embeddings.embedding_storing.openai.embeddings.create", lambda **kwargs:
+        DummyResp([1.0, 2.0, 3.0]))
     monkeypatch.setattr("builtins.print", lambda *a, **k: None)
     es.embed_and_store_in_batches(collection, summaries, batch_size=1, resume=True)
     # Only Book2 should be added
@@ -78,7 +80,8 @@ def test_embed_and_store_in_batches_invalid_model(monkeypatch):
     class DummyResp:
         def __init__(self, emb):
             self.data = [MagicMock(embedding=emb)]
-    monkeypatch.setattr(openai.embeddings, "create", lambda **kwargs: DummyResp([1.0, 2.0, 3.0]))
+    monkeypatch.setattr(openai.embeddings, "create", lambda **kwargs:
+        DummyResp([1.0, 2.0, 3.0]))
     with pytest.raises(ValueError):
         es.embed_and_store_in_batches(collection, summaries, batch_size=1, resume=False, embedding_model="not-a-real-model")
 
@@ -90,7 +93,8 @@ def test_main_full(monkeypatch):
     collection = MagicMock()
     monkeypatch.setattr(es, "init_chroma", lambda: collection)
     monkeypatch.setattr(es, "embed_and_store_in_batches", lambda c, s, **kwargs: None)
-    monkeypatch.setattr(es, "load_summaries", lambda path: [{"title": f"Book-{path}-A"}, {"title": f"Book-{path}-B"}])
+    monkeypatch.setattr(es, "load_summaries", lambda path: [{"title": f"Book-{path}-A"},
+                                                            {"title": f"Book-{path}-B"}])
     printed = []
     monkeypatch.setattr("builtins.print", lambda *a, **k: printed.append(a[0] if a else ""))
     es.main()

@@ -24,14 +24,17 @@ collection = client.get_or_create_collection("books")
 
 def translate(text, target_language):
     """
-    Translates the given text to Romanian using the OpenAI GPT model, preserving the original meaning and style.
+    Translates the given text to Romanian using the OpenAI GPT model, preserving the original
+    meaning and style.
 
     Args:
         text (str): The text to be translated.
-        target_language (str): The target language for translation. If set to "english", the original text is returned.
+        target_language (str): The target language for translation. If set to "english",
+        the original text is returned.
 
     Returns:
-        str: The translated text in Romanian, or the original text if the target language is English.
+        str: The translated text in Romanian, or the original text if the target language
+        is English.
     """
     if target_language == "english":
         return text
@@ -81,7 +84,6 @@ def main():
                 user_input = listen_with_whisper(language=lang_code)
             except Exception as e:
                 print(f"Whisper failed: {e}")
-                
         else:
             user_input = input(prompt)
 

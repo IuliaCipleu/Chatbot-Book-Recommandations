@@ -109,7 +109,8 @@ def test_is_similar_to_high_rated_fallback_summary_exception(monkeypatch):
     meta = {"title": "Book Y"}
     high_rated_books = [{"summary": "adventure magic"}]
     # Patch get_summary_by_title to raise exception
-    monkeypatch.setattr(filter_mod, "get_summary_by_title", lambda title: (_ for _ in ()).throw(Exception("fail")))
+    monkeypatch.setattr(filter_mod, "get_summary_by_title", lambda title:
+        (_ for _ in ()).throw(Exception("fail")))
     assert filter_mod.is_similar_to_high_rated(meta, high_rated_books) is False
 
 def test_is_similar_to_high_rated_short_keywords():
@@ -123,5 +124,3 @@ def test_is_similar_to_high_rated_stopwords_filtered():
     high_rated_books = [{"summary": "magic friendship courage"}]
     # Stopwords should be filtered, overlap on magic, friendship, courage
     assert filter_mod.is_similar_to_high_rated(meta, high_rated_books) is True
-
-

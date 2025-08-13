@@ -55,7 +55,8 @@ def get_user_read_books(conn_string, db_user, db_password, username):
             ORDER BY ur.read_date DESC
         """, (user_id,))
         return [
-            {"title": row[0], "rating": row[1], "read_date": row[2].strftime('%Y-%m-%d') if row[2] else None}
+            {"title": row[0], "rating": row[1],
+             "read_date": row[2].strftime('%Y-%m-%d') if row[2] else None}
             for row in cur.fetchall()
         ]
     except Exception as e:
@@ -139,7 +140,8 @@ def get_user(conn_string, db_user, db_password, username):
         if 'conn' in locals(): conn.close()
 
 def update_user(conn_string, db_user, db_password, username, **kwargs):
-    """Update user fields. kwargs can include email, language, profile, voice_enabled, plain_password."""
+    """Update user fields. kwargs can include email, language, profile,
+    voice_enabled, plain_password."""
     try:
         conn = oracledb.connect(user=db_user, password=db_password, dsn=conn_string)
         cur = conn.cursor()
@@ -198,7 +200,7 @@ def login_user(conn_string, db_user, db_password, username, plain_password):
         if not row:
             print("User not found.")
             return None
-        
+
         if verify_password(plain_password, row[0]):
             return {
                 "username": username,

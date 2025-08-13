@@ -1,8 +1,7 @@
-import pytest
 import json
-import os
 from unittest.mock import patch, mock_open
 from search.summary_tool import get_summary_by_title
+import pytest
 
 def test_summary_found_in_first_batch(monkeypatch):
     # Mock glob to return two files
@@ -43,12 +42,12 @@ def test_summary_not_found(monkeypatch):
         result = get_summary_by_title("Book Z", batches_dir="unused")
         assert result == "Summary not found."
 
-def test_no_batch_files(monkeypatch):
+def test_no_batch_files_unused_dir(monkeypatch):
     monkeypatch.setattr("glob.glob", lambda pattern: [])
     result = get_summary_by_title("Any Book", batches_dir="unused")
     assert result == "Summary not found."
 
-def test_empty_batch_file(monkeypatch):
+def test_empty_batch_file_unused_dir(monkeypatch):
     batch_files = ["batch1.json"]
     monkeypatch.setattr("glob.glob", lambda pattern: batch_files)
     m = mock_open(read_data="{}")
@@ -75,7 +74,7 @@ def test_summary_found(monkeypatch):
         result = get_summary_by_title("Book Title", batches_dir="data/batches")
         assert result == "This is the summary."
 
-def test_summary_not_found(monkeypatch):
+def test_summary_not_found_in_batches(monkeypatch):
     # Simulate one batch file without the book
     batch_files = ["data/batches/book_summaries_batch_1.json"]
     monkeypatch.setattr("glob.glob", lambda pattern: batch_files)
