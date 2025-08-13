@@ -5,6 +5,13 @@ from api_server import app, create_access_token, verify_token, SECRET_KEY, ALGOR
 from jose import jwt
 from fastapi import HTTPException
 from datetime import datetime, UTC, timedelta
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+DB_CONN_STRING = os.environ.get("DB_CONN_STRING", "localhost/freepdb1")
+DB_USER = os.environ.get("DB_USER", "SYSTEM")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "new_password")
 
 client = TestClient(app)
 
@@ -219,9 +226,9 @@ def test_add_read_book_success(mock_add_read_book, mock_verify_token, patch_depe
     data = response.json()
     assert data == {"success": True}
     mock_add_read_book.assert_called_once_with(
-        conn_string="localhost/freepdb1",
-        db_user="SYSTEM",
-        db_password="new_password",
+        conn_string=DB_CONN_STRING,
+        db_user=DB_USER,
+        db_password=DB_PASSWORD,
         username="testuser",
         book_title="Book 1",
         rating=5
@@ -287,9 +294,9 @@ def test_user_read_books_success(mock_get_user_read_books, mock_verify_token, pa
     assert data["books"][0]["title"] == "Book 1"
     assert data["books"][1]["title"] == "Book 2"
     mock_get_user_read_books.assert_called_once_with(
-        conn_string="localhost/freepdb1",
-        db_user="SYSTEM",
-        db_password="new_password",
+        conn_string=DB_CONN_STRING,
+        db_user=DB_USER,
+        db_password=DB_PASSWORD,
         username="testuser"
     )
 
@@ -304,3 +311,128 @@ def test_user_read_books_db_error(mock_get_user_read_books, mock_verify_token, p
     assert response.status_code == 400
     data = response.json()
     assert "DB error" in data["detail"]
+
+@patch("api_server.openai.chat.completions.create")
+def test_translate_english_to_romanian(mock_openai_create):
+    mock_openai_create.return_value.choices = [type("obj", (), {"message": type("obj", (), {"content": "Salut lume!"})})]
+    response = client.post("/translate", json={"text": "Hello world!", "target_lang": "romanian"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["translated"] == "Salut lume!"
+    mock_openai_create.assert_called_once()
+
+@patch("api_server.openai.chat.completions.create")
+def test_translate_romanian_to_english(mock_openai_create):
+    mock_openai_create.return_value.choices = [type("obj", (), {"message": type("obj", (), {"content": "Hello world!"})})]
+    response = client.post("/translate", json={"text": "Salut lume!", "target_lang": "english"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["translated"] == "Hello world!"
+    mock_openai_create.assert_called_once()
+
+@patch("api_server.openai.chat.completions.create")
+def test_translate_missing_text(mock_openai_create):
+    response = client.post("/translate", json={"target_lang": "romanian"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["translated"] == ""
+    mock_openai_create.assert_not_called()
+
+def test_translate_empty_body():
+    response = client.post("/translate", json={})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["translated"] == ""
+
+@patch("api_server.openai.chat.completions.create", side_effect=Exception("OpenAI error"))
+def test_translate_openai_error(mock_openai_create):
+    response = client.post("/translate", json={"text": "Hello world!", "target_lang": "romanian"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["translated"] == "Hello world!"
+    assert "error" in data
+
+@patch("api_server.verify_token", return_value="testuser")
+@patch("api_server.update_user")
+def test_update_user_success(mock_update_user, mock_verify_token, patch_dependencies):
+    # Only email is updated
+    response = client.post(
+        "/update_user",
+        json={"email": "newemail@endava.com"},
+        headers={"Authorization": "Bearer testtoken"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data == {"success": True}
+    mock_update_user.assert_called_once_with(
+        conn_string=DB_CONN_STRING,
+        db_user=DB_USER,
+        db_password=DB_PASSWORD,
+        username="testuser",
+        email="newemail@endava.com"
+    )
+
+@patch("api_server.verify_token", return_value="testuser")
+@patch("api_server.update_user")
+def test_update_user_multiple_fields(mock_update_user, mock_verify_token, patch_dependencies):
+    # Update multiple fields
+    response = client.post(
+        "/update_user",
+        json={
+            "email": "newemail@endava.com",
+            "language": "romanian",
+            "profile": "adult",
+            "voice_enabled": True,
+            "plain_password": "NewPassword123!"
+        },
+        headers={"Authorization": "Bearer testtoken"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data == {"success": True}
+    mock_update_user.assert_called_once_with(
+        conn_string=DB_CONN_STRING,
+        db_user=DB_USER,
+        db_password=DB_PASSWORD,
+        username="testuser",
+        email="newemail@endava.com",
+        language="romanian",
+        profile="adult",
+        voice_enabled=True,
+        plain_password="NewPassword123!"
+    )
+
+@patch("api_server.verify_token", return_value="testuser")
+@patch("api_server.update_user")
+def test_update_user_no_fields(mock_update_user, mock_verify_token, patch_dependencies):
+    # No updatable fields provided
+    response = client.post(
+        "/update_user",
+        json={},
+        headers={"Authorization": "Bearer testtoken"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data == {"success": True}
+    mock_update_user.assert_called_once_with(
+        conn_string=DB_CONN_STRING,
+        db_user=DB_USER,
+        db_password=DB_PASSWORD,
+        username="testuser"
+    )
+
+@patch("api_server.verify_token", return_value="testuser")
+@patch("api_server.update_user")
+def test_update_user_exception(mock_update_user, mock_verify_token, patch_dependencies):
+    # Simulate exception in update_user
+    mock_update_user.side_effect = Exception("DB error")
+    response = client.post(
+        "/update_user",
+        json={"email": "fail@endava.com"},
+        headers={"Authorization": "Bearer testtoken"}
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert "DB error" in data["detail"]
+
+
