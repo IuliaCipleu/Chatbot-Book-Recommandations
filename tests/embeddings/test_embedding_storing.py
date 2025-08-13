@@ -81,3 +81,70 @@ def test_embed_and_store_in_batches_invalid_model(monkeypatch):
     monkeypatch.setattr(openai.embeddings, "create", lambda **kwargs: DummyResp([1.0, 2.0, 3.0]))
     with pytest.raises(ValueError):
         es.embed_and_store_in_batches(collection, summaries, batch_size=1, resume=False, embedding_model="not-a-real-model")
+
+def test_main_full(monkeypatch):
+    # Simulate 3 batch files, each with 2 books
+    batch_files = ["batch1.json", "batch2.json", "batch3.json"]
+    monkeypatch.setattr(es, "get_all_batch_files", lambda d: batch_files)
+    monkeypatch.setattr(es, "load_openai_key", lambda: None)
+    collection = MagicMock()
+    monkeypatch.setattr(es, "init_chroma", lambda: collection)
+    monkeypatch.setattr(es, "embed_and_store_in_batches", lambda c, s, **kwargs: None)
+    monkeypatch.setattr(es, "load_summaries", lambda path: [{"title": f"Book-{path}-A"}, {"title": f"Book-{path}-B"}])
+    printed = []
+    monkeypatch.setattr("builtins.print", lambda *a, **k: printed.append(a[0] if a else ""))
+    es.main()
+    # Should process all 3 batches
+    assert any("Processing batch1.json..." in str(p) for p in printed)
+    assert any("Processing batch2.json..." in str(p) for p in printed)
+    assert any("Processing batch3.json..." in str(p) for p in printed)
+    # Should print total_books = 6
+    assert any("Finished inserting 6 books" in str(p) for p in printed)
+
+def test_main_start_end(monkeypatch):
+    batch_files = ["batch1.json", "batch2.json", "batch3.json", "batch4.json"]
+    monkeypatch.setattr(es, "get_all_batch_files", lambda d: batch_files)
+    monkeypatch.setattr(es, "load_openai_key", lambda: None)
+    collection = MagicMock()
+    monkeypatch.setattr(es, "init_chroma", lambda: collection)
+    monkeypatch.setattr(es, "embed_and_store_in_batches", lambda c, s, **kwargs: None)
+    monkeypatch.setattr(es, "load_summaries", lambda path: [{"title": f"Book-{path}-A"}])
+    printed = []
+    monkeypatch.setattr("builtins.print", lambda *a, **k: printed.append(a[0] if a else ""))
+    es.main(start=1, end=3)
+    # Should process batch2.json and batch3.json only
+    assert any("Processing batch2.json..." in str(p) for p in printed)
+    assert any("Processing batch3.json..." in str(p) for p in printed)
+    assert not any("Processing batch1.json..." in str(p) for p in printed)
+    assert not any("Processing batch4.json..." in str(p) for p in printed)
+    # Should print total_books = 2
+    assert any("Finished inserting 2 books" in str(p) for p in printed)
+
+def test_main_no_batches(monkeypatch):
+    monkeypatch.setattr(es, "get_all_batch_files", lambda d: [])
+    monkeypatch.setattr(es, "load_openai_key", lambda: None)
+    monkeypatch.setattr(es, "init_chroma", lambda: MagicMock())
+    monkeypatch.setattr(es, "embed_and_store_in_batches", lambda c, s, **kwargs: None)
+    monkeypatch.setattr(es, "load_summaries", lambda path: [])
+    printed = []
+    monkeypatch.setattr("builtins.print", lambda *a, **k: printed.append(a[0] if a else ""))
+    es.main()
+    # Should print total_books = 0
+    assert any("Finished inserting 0 books" in str(p) for p in printed)
+
+def test_main_handles_exceptions(monkeypatch):
+    batch_files = ["batch1.json"]
+    monkeypatch.setattr(es, "get_all_batch_files", lambda d: batch_files)
+    monkeypatch.setattr(es, "load_openai_key", lambda: None)
+    monkeypatch.setattr(es, "init_chroma", lambda: MagicMock())
+    monkeypatch.setattr(es, "load_summaries", lambda path: [{"title": "Book1"}])
+    def raise_exc(*a, **k): raise Exception("fail")
+    monkeypatch.setattr(es, "embed_and_store_in_batches", raise_exc)
+    printed = []
+    monkeypatch.setattr("builtins.print", lambda *a, **k: printed.append(a[0] if a else ""))
+    try:
+        es.main()
+    except Exception as e:
+        assert str(e) == "fail"
+    # Should still print "Processing batch1.json..."
+    assert any("Processing batch1.json..." in str(p) for p in printed)
