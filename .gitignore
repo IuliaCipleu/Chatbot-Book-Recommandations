@@ -211,4 +211,4 @@ data/bad_words.json
 
 # Ignore all files in chroma_db except chroma.sqlite3
 chroma_db/*
-!chroma_db/chroma.sqlite3
+!chroma_db/chroma.sqlite3chroma_db/
