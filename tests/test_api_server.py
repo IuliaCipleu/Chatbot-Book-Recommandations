@@ -206,3 +206,101 @@ def test_login_user_exception(mock_login_user, patch_dependencies):
     assert response.status_code == 401
     data = response.json()
     assert data["detail"] == "Invalid credentials"
+
+@patch("api_server.verify_token", return_value="testuser")
+@patch("api_server.add_read_book")
+def test_add_read_book_success(mock_add_read_book, mock_verify_token, patch_dependencies):
+    response = client.post(
+        "/add_read_book",
+        json={"book_title": "Book 1", "rating": 5},
+        headers={"Authorization": "Bearer testtoken"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data == {"success": True}
+    mock_add_read_book.assert_called_once_with(
+        conn_string="localhost/freepdb1",
+        db_user="SYSTEM",
+        db_password="new_password",
+        username="testuser",
+        book_title="Book 1",
+        rating=5
+    )
+
+@patch("api_server.verify_token", return_value="testuser")
+@patch("api_server.add_read_book")
+def test_add_read_book_missing_book_title(mock_add_read_book, mock_verify_token, patch_dependencies):
+    response = client.post(
+        "/add_read_book",
+        json={"rating": 4},
+        headers={"Authorization": "Bearer testtoken"}
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert "detail" in data
+    assert "book_title" in data["detail"]
+    mock_add_read_book.assert_not_called()
+
+@patch("api_server.verify_token", return_value="testuser")
+@patch("api_server.add_read_book")
+def test_add_read_book_type_error(mock_add_read_book, mock_verify_token, patch_dependencies):
+    # Simulate TypeError in add_read_book
+    mock_add_read_book.side_effect = TypeError("Type error occurred")
+    response = client.post(
+        "/add_read_book",
+        json={"book_title": "Book 2", "rating": 3},
+        headers={"Authorization": "Bearer testtoken"}
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert "Type error occurred" in data["detail"]
+
+@patch("api_server.verify_token", return_value="testuser")
+@patch("api_server.add_read_book")
+def test_add_read_book_value_error(mock_add_read_book, mock_verify_token, patch_dependencies):
+    # Simulate ValueError in add_read_book
+    mock_add_read_book.side_effect = ValueError("Invalid rating")
+    response = client.post(
+        "/add_read_book",
+        json={"book_title": "Book 3", "rating": -1},
+        headers={"Authorization": "Bearer testtoken"}
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert "Invalid rating" in data["detail"]
+
+@patch("api_server.verify_token", return_value="testuser")
+@patch("api_server.get_user_read_books")
+def test_user_read_books_success(mock_get_user_read_books, mock_verify_token, patch_dependencies):
+    mock_get_user_read_books.return_value = [
+        {"title": "Book 1", "rating": 5},
+        {"title": "Book 2", "rating": 4}
+    ]
+    response = client.get(
+        "/user_read_books",
+        headers={"Authorization": "Bearer testtoken"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "books" in data
+    assert len(data["books"]) == 2
+    assert data["books"][0]["title"] == "Book 1"
+    assert data["books"][1]["title"] == "Book 2"
+    mock_get_user_read_books.assert_called_once_with(
+        conn_string="localhost/freepdb1",
+        db_user="SYSTEM",
+        db_password="new_password",
+        username="testuser"
+    )
+
+@patch("api_server.verify_token", return_value="testuser")
+@patch("api_server.get_user_read_books")
+def test_user_read_books_db_error(mock_get_user_read_books, mock_verify_token, patch_dependencies):
+    mock_get_user_read_books.side_effect = Exception("DB error")
+    response = client.get(
+        "/user_read_books",
+        headers={"Authorization": "Bearer testtoken"}
+    )
+    assert response.status_code == 400
+    data = response.json()
+    assert "DB error" in data["detail"]
