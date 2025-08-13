@@ -75,3 +75,4 @@ def test_parse_cmu_book_summary_duplicate_genre(tmp_path):
     # Only one book per genre should be included
     assert len(data) == 1
     os.remove(txt_path)
+    

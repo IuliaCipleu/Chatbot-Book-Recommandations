@@ -1,18 +1,31 @@
 """
-Embeds book summaries using OpenAI and stores them in a ChromaDB collection.
+embedding_storing.py
 
-This script loads book summaries from a JSON file, generates embeddings for each summary
-using the OpenAI API, and stores the embeddings along with metadata in a ChromaDB database.
+Script for embedding book summaries using OpenAI and storing them in a ChromaDB collection.
+
+Features:
+- Loads book summaries and metadata from genre-based JSON files (list of dicts)
+- Generates OpenAI embeddings for each summary (supports multiple embedding models)
+- Stores embeddings, metadata (title, genre, author), and document text in ChromaDB
+- Skips already-inserted books (resume mode) and avoids duplicates in each batch
+- Supports partial processing via --start and --end batch indices
+- Prints progress and batch statistics
+
+Integrations:
+- ChromaDB for vector storage and metadata
+- OpenAI for embedding generation
+
+Recommended to run after preprocessing with split_txt_to_json_batches.py
 """
 
-import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-import json
+import sys
 import glob
+import json
+import argparse
 import openai
 import chromadb
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.openai_config import load_openai_key
 
 
@@ -48,9 +61,10 @@ def get_all_batch_files(batches_dir):
     """
     Returns a sorted list of all JSON batch files in the given directory.
     """
-    return sorted(glob.glob(os.path.join(batches_dir, "book_summaries_batch_*.json")))
+    return sorted(glob.glob(os.path.join(batches_dir, "book_summaries_*.json")))
 
-def embed_and_store_in_batches(collection, summaries, batch_size=100, resume=True, embedding_model="text-embedding-3-small"):
+def embed_and_store_in_batches(collection, summaries, batch_size=100, resume=True,
+                               embedding_model="text-embedding-3-small"):
     """
     Generates embeddings for book summaries and stores them in ChromaDB in batches.
     Resumes from where it left off if resume=True.
@@ -89,6 +103,7 @@ def embed_and_store_in_batches(collection, summaries, batch_size=100, resume=Tru
         batch_titles = []
         batch_ids = []
         batch_metas = []
+        seen_titles = set()
         for j in range(i, min(i+batch_size, total)):
             book = summaries[j]
             title = book.get("title")
@@ -99,11 +114,15 @@ def embed_and_store_in_batches(collection, summaries, batch_size=100, resume=Tru
                 continue
             if resume and title in existing_ids:
                 continue
+            if title in seen_titles:
+                continue  # skip duplicate in this batch
+            seen_titles.add(title)
             input_text = f"{title}: {summary}"
             batch.append(input_text)
             batch_titles.append(title)
             batch_ids.append(title)
-            batch_metas.append({"title": title, "genre": genre, "author": author})
+            genre_str = ", ".join(genre) if isinstance(genre, list) else (genre if genre else None)
+            batch_metas.append({"title": title, "genre": genre_str, "author": author})
         if not batch:
             i += batch_size
             continue
@@ -125,20 +144,29 @@ def embed_and_store_in_batches(collection, summaries, batch_size=100, resume=Tru
         i += batch_size
     print("All batches processed.")
 
-def main():
+def main(start=0, end=None):
     """
     Main function to load API key, initialize ChromaDB, load summaries, and store embeddings.
+    Can process only a subset of batch files using start and end indices.
     """
     load_openai_key()  # Check and set API key
     collection = init_chroma()
     batch_files = get_all_batch_files(BATCHES_DIR)
+    if end is None:
+        end = len(batch_files)
     total_books = 0
-    for batch_file in batch_files:
+    for batch_file in batch_files[start:end]:
         print(f"Processing {batch_file}...")
         summaries = load_summaries(batch_file)
         embed_and_store_in_batches(collection, summaries, batch_size=100, resume=True)
         total_books += len(summaries)
-    print(f"Finished inserting {total_books} books from all batches into ChromaDB.")
+    print(f"Finished inserting {total_books} books from batch {start} to {end-1} into ChromaDB.")
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Embed and store book summaries in ChromaDB.")
+    parser.add_argument('--start', type=int, default=152,
+                        help='Start index of batch files to process')
+    parser.add_argument('--end', type=int, default=None,
+                        help='End index (exclusive) of batch files to process')
+    args = parser.parse_args()
+    main(start=args.start, end=args.end)

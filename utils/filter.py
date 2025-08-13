@@ -4,8 +4,9 @@ of bad words.
 """
 import json
 import string
-import openai
 import re
+import openai
+from search.summary_tool import get_summary_by_title
 
 from utils.openai_config import load_openai_key
 
@@ -18,6 +19,18 @@ EXCLUSION_KEYWORDS = {
 }
 
 def is_appropriate(summary, profile):
+    """
+    Determines if a book summary is appropriate for a given user profile by checking for the presence of
+    banned keywords.
+
+    Args:
+        summary (str): The summary text of the book to be evaluated.
+        profile (str): The user profile used to retrieve the set of exclusion keywords.
+
+    Returns:
+        bool: True if the summary does not contain any banned keywords for the profile,
+        False otherwise.
+    """
     banned = EXCLUSION_KEYWORDS.get(profile, set())
     return not any(word in summary.lower() for word in banned)
 
@@ -59,7 +72,8 @@ def infer_reader_profile(user_input: str) -> str:
     Infers the target reader profile category from a given book request.
 
     Given a user input describing a book request, this function uses an OpenAI language model
-    to classify the intended reader into one of the following categories: 'child', 'teen', 'adult', or 'technical'.
+    to classify the intended reader into one of the following categories: 'child',
+    'teen', 'adult', or 'technical'.
     If the category cannot be determined, it returns 'unknown'.
 
     Args:
@@ -69,7 +83,7 @@ def infer_reader_profile(user_input: str) -> str:
         str: The inferred reader category ('child', 'teen', 'adult', 'technical', or 'unknown').
     """
     load_openai_key()
-    
+
     prompt = (
         "Classify the target reader of this book request into one of the following categories: "
         "child, teen, adult, technical. If uncertain, respond with 'unknown'.\n\n"
@@ -98,13 +112,15 @@ def sanitize_for_image_prompt(text):
     for bad in BAD_WORDS:
         sanitized = re.sub(rf'\\b{re.escape(bad)}\\b', '[filtered]', sanitized, flags=re.IGNORECASE)
     # Remove explicit/triggering phrases (basic)
-    sanitized = re.sub(r'(sex|violence|abuse|drugs|death)', '[filtered]', sanitized, flags=re.IGNORECASE)
+    sanitized = re.sub(r'(sex|violence|abuse|drugs|death)', '[filtered]', sanitized,
+                       flags=re.IGNORECASE)
     # Truncate
     if len(sanitized) > 300:
         sanitized = sanitized[:297] + '...'
     return sanitized
 
-# Prefer books similar to those highly rated by the user (improved: genre/author/theme via summary keyword overlap)
+# Prefer books similar to those highly rated by the user (improved: genre/author/theme via
+# summary keyword overlap)
 def is_similar_to_high_rated(meta, high_rated_books):
     """
     meta: metadata dict for candidate book
@@ -117,7 +133,7 @@ def is_similar_to_high_rated(meta, high_rated_books):
     # Fallback: try to get summary by title if not present
     if not candidate_summary and meta.get("title"):
         try:
-            from search.summary_tool import get_summary_by_title
+            
             candidate_summary = get_summary_by_title(meta["title"]).lower()
         except Exception:
             candidate_summary = ""
@@ -135,13 +151,17 @@ def is_similar_to_high_rated(meta, high_rated_books):
         if candidate_summary and b_summary:
             # Use set of keywords (remove stopwords, short words)
             def keywords(text):
-                stopwords = set(["the","a","an","and","of","in","on","to","for","with","by","at","from","is","it","as","that","this","was","are","be","or","but","if","not","into","their","his","her","its","they","them","he","she","you","we","our","your","i"])
+                stopwords = set(["the","a","an","and","of","in","on","to","for","with","by",
+                                 "at","from","is","it","as","that","this","was","are","be",
+                                 "or","but","if","not","into","their","his","her","its","they",
+                                 "them","he","she","you","we","our","your","i"])
                 return set(w for w in re.findall(r"\b\w{4,}\b", text) if w not in stopwords)
             cand_kw = keywords(candidate_summary)
             b_kw = keywords(b_summary)
             if cand_kw and b_kw:
                 overlap = cand_kw & b_kw
-                # If there is significant overlap, consider similar (threshold: 5 words or 20% of candidate keywords)
+                # If there is significant overlap, consider similar (threshold: 5 words or 20% of
+                # candidate keywords)
                 if len(overlap) >= 5 or (len(cand_kw) > 0 and len(overlap) / len(cand_kw) > 0.2):
                     return True
     return False

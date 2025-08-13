@@ -1,0 +1,10 @@
+[
+  {
+    "title": "Lions' Commentary on UNIX 6th Edition, with Source Code",
+    "summary": " Unix Operating System Source Code Level Six is the kernel source code, lightly edited by Lions to better separate the functionality &mdash; system initialization and process management, interrupts and system calls, basic I/O, file systems and pipes and character devices. All procedures and symbols are listed alphabetically with a cross reference. The code as presented will run on a PDP-11/40 with RK-05 disk drive, LP-11 line printer interface, PCL-11 paper tape writer and KL-11 terminal interface, or a suitable PDP-11 emulator, such as SIMH. A Commentary on the Unix Operating System starts with notes on Unix and other useful documentation (the Unix manual pages, DEC hardware manuals and so on), a section on the architecture of the PDP-11 and a chapter on how to read C programs. The source commentary follows, divided into the same sections as the code. The book ends with suggested exercises for the student. As Lions explains, this commentary supplements the comments in the source. It is possible to understand the code without the extra commentary, and the reader is advised to do so and only read the notes as needed. The commentary also remarks on how the code might be improved.",
+    "genre": [
+      "Computer Science"
+    ],
+    "author": "John Lions"
+  }
+]

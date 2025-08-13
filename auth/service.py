@@ -1,3 +1,7 @@
+import oracledb
+from auth.encrypt import hash_password  # make sure this uses bcrypt
+from auth.encrypt import verify_password
+
 def add_read_book(conn_string, db_user, db_password, username, book_title, rating=None):
     """Add a book to the user's read list with optional rating. Creates book if not exists."""
     try:
@@ -60,9 +64,7 @@ def get_user_read_books(conn_string, db_user, db_password, username):
     finally:
         if 'cur' in locals(): cur.close()
         if 'conn' in locals(): conn.close()
-import oracledb
-from auth.encrypt import hash_password  # make sure this uses bcrypt
-from auth.encrypt import verify_password
+
 
 def insert_user(
     conn_string: str,
@@ -156,7 +158,6 @@ def update_user(conn_string, db_user, db_password, username, **kwargs):
             fields.append('voice_enabled = :voice_enabled')
             values.append('Y' if kwargs['voice_enabled'] else 'N')
         if 'plain_password' in kwargs:
-            from auth.encrypt import hash_password
             fields.append('password_hash = :password_hash')
             values.append(hash_password(kwargs['plain_password']))
         if not fields:
@@ -209,7 +210,7 @@ def login_user(conn_string, db_user, db_password, username, plain_password):
         else:
             print("Invalid password.")
             return None
-    except Exception as e:
+    except oracledb.DatabaseError as e:
         print(f"Login failed: {e}")
         return None
     finally:

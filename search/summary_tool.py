@@ -17,10 +17,17 @@ def get_summary_by_title(title, batches_dir="data/batches"):
     Returns:
         str: The summary of the book if found, otherwise "Summary not found."
     """
-    batch_files = glob.glob(os.path.join(batches_dir, "book_summaries_batch_*.json"))
-    for batch_file in batch_files:
-        with open(batch_file, "r", encoding="utf-8") as f:
-            summaries = json.load(f)
-            if title in summaries:
-                return summaries[title]
+    json_files = glob.glob(os.path.join(batches_dir, "book_summaries_*.json"))
+    for json_file in json_files:
+        with open(json_file, "r", encoding="utf-8") as f:
+            books = json.load(f)
+            # books is a list of dicts with 'title' and 'summary'
+            if isinstance(books, dict):
+                # fallback for old format
+                if title in books:
+                    return books[title]
+            elif isinstance(books, list):
+                for book in books:
+                    if book.get("title") == title:
+                        return book.get("summary", "Summary not found.")
     return "Summary not found."

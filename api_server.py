@@ -1,128 +1,185 @@
-from fastapi import Body
+"""
+api_server.py
 
-from fastapi import Body, HTTPException
-import openai
+FastAPI backend for the Book Recommendation Chatbot application.
+
+Features:
+- Book recommendations based on user query, profile, and reading history
+- User authentication (register, login, update profile)
+- Voice input transcription using Whisper
+- Text translation (English/Romanian) via OpenAI
+- Book search and metadata retrieval from ChromaDB
+- Personalized recommendations (tracks read books and ratings)
+- Image generation for book covers using OpenAI DALL·E
+- CORS support for frontend-backend communication
+
+Endpoints:
+- POST /recommend: Get a book recommendation (with image, summary, and filtering)
+- POST /voice: Transcribe voice input
+- POST /translate: Translate text between English and Romanian
+- POST /register: Register a new user
+- POST /login: Authenticate a user
+- POST /update_user: Update user profile information
+- POST /add_read_book: Add a book to user's read list with rating
+- GET /user_read_books: Get books read by a user
+- GET /search_titles: Search book titles with pagination
+
+Integrations:
+- ChromaDB for vector storage and metadata
+- OpenAI for embeddings, chat, translation, and image generation
+- Oracle DB for user and book tracking
+
+All endpoints support robust error handling and are designed for seamless integration with a
+React frontend.
+"""
 import os
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
+import openai
+import chromadb
+import httpx
+from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import status
+from jose import JWTError, jwt
 from search.retriever import search_books
 from search.summary_tool import get_summary_by_title
 from utils.openai_config import load_openai_key
 from utils.voice_input import listen_with_whisper
 from utils.image_generator import generate_image_from_summary
-from utils.filter import is_appropriate, infer_reader_profile, sanitize_for_image_prompt, is_similar_to_high_rated
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-import chromadb
-import httpx
-from auth.service import insert_user, get_user, login_user, update_user, add_read_book, get_user_read_books
-
-# --- User Read Books Endpoints ---
-from fastapi import Query
+from utils.filter import (
+    is_appropriate,
+    infer_reader_profile,
+    sanitize_for_image_prompt,
+    is_similar_to_high_rated,
+)
+from auth.service import (
+    insert_user,
+    login_user,
+    update_user,
+    add_read_book,
+    get_user_read_books,
+    delete_user,
+)
 
 load_dotenv()
 DB_CONN_STRING = os.environ.get("DB_CONN_STRING", "localhost/freepdb1")
 DB_USER = os.environ.get("DB_USER", "SYSTEM")
 DB_PASSWORD = os.environ.get("DB_PASSWORD", "new_password")
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "supersecretkey")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+security = HTTPBearer()
 app = FastAPI()
-
-# Allow frontend to call backend (CORS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Or restrict to your frontend's URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 client = chromadb.PersistentClient(path="./chroma_db")
 collection = client.get_or_create_collection("books")
 load_openai_key()
 
+def create_access_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return username
+    except JWTError as exc:
+        raise HTTPException(status_code=401, detail="Invalid token") from exc
+
+@app.post("/login")
+async def login(request: Request):
+    data = await request.json()
+    user = login_user(
+        conn_string=DB_CONN_STRING,
+        db_user=DB_USER,
+        db_password=DB_PASSWORD,
+        username=data["username"],
+        plain_password=data["password"]
+    )
+    if user:
+        access_token = create_access_token({"sub": user["username"]})
+        return {"success": True, "user": user, "access_token": access_token}
+    else:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
 @app.post("/recommend")
-async def recommend(request: Request):
+async def recommend(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
     data = await request.json()
     query = data.get("query")
     role = data.get("role")
-    username = data.get("username")
-    if not role:
-        # Infer user profile from the query
-        role = infer_reader_profile(query)
-        if role not in ["child", "teen", "adult", "technical"]:
-            # Only ask for clarification if query is empty or obviously ambiguous
-            if not query or not query.strip():
-                language = data.get("language", "english")
-                clarify_prompt = "Who is the book for? (child, teen, adult, technical): "
-                if language == "romanian":
-                    clarify_prompt = "Pentru cine este cartea? (child, teen, adult, technical): "
-                return {"clarify_role": True, "prompt": clarify_prompt}
-            # Otherwise, fallback to adult for compatibility
-            role = "adult"
     language = data.get("language", "english")
-
-    # Get user's read books and ratings if username is provided
     read_titles = set()
     high_rated_books = []
-    if username:
-        try:
-            user_books = get_user_read_books(
-                conn_string=DB_CONN_STRING,
-                db_user=DB_USER,
-                db_password=DB_PASSWORD,
-                username=username
-            )
-            for b in user_books:
-                read_titles.add(b["title"])
-                if b.get("rating") and b["rating"] >= 4:
-                    # Try to get genre, author, summary if available
-                    high_rated_books.append({
-                        "title": b["title"],
-                        "genre": b.get("genre"),
-                        "author": b.get("author"),
-                        "summary": b.get("summary")
-                    })
-        except Exception:
-            pass
-
-    # Use user profile to bias search if no query
-    search_query = query
-    if not search_query and role:
-        search_query = role
-
+    username = verify_token(credentials.credentials)
+    try:
+        user_books = get_user_read_books(
+            conn_string=DB_CONN_STRING,
+            db_user=DB_USER,
+            db_password=DB_PASSWORD,
+            username=username
+        )
+        for b in user_books:
+            read_titles.add(b["title"])
+            if b.get("rating") and b["rating"] >= 4:
+                high_rated_books.append({
+                    "title": b["title"],
+                    "genre": b.get("genre"),
+                    "author": b.get("author"),
+                    "summary": b.get("summary")
+                })
+    except (KeyError, TypeError, ValueError):
+        pass
+    search_query = query if query else role
     results = search_books(search_query, collection, top_k=10)
     ids = results["ids"][0]
     metadatas = results["metadatas"][0]
-
-    # Filter out already read books
     candidates = [
         (idx, meta)
         for idx, meta in enumerate(metadatas)
         if meta["title"] not in read_titles
     ]
-
-    # Sort: prefer similar to high rated, then by original order
-    candidates = sorted(candidates, key=lambda x: (not is_similar_to_high_rated(x[1], high_rated_books), x[0]))
-
+    candidates = sorted(candidates, key=lambda x: (not is_similar_to_high_rated(x[1],
+                                                    high_rated_books), x[0]))
     for idx, meta in candidates:
         title = meta["title"]
         summary = get_summary_by_title(title)
-        if summary and summary.strip() and summary != "Summary not found." and is_appropriate(summary, role):
+        if (summary and summary.strip() and summary != "Summary not found." and
+            is_appropriate(summary, role)):
             image_url = meta.get("image_url")
             if not image_url:
-                # Translate to English if needed
                 if language == "romanian":
-                    async with httpx.AsyncClient() as client:
-                        resp_title = await client.post("http://localhost:8000/translate", json={"text": title, "target_lang": "english"})
+                    async with httpx.AsyncClient() as async_httpx_client:
+                        resp_title = await async_httpx_client.post(
+                            "http://localhost:8000/translate",
+                            json={"text": title, "target_lang": "english"}
+                        )
                         title_en = resp_title.json().get("translated", title)
-                        resp_summary = await client.post("http://localhost:8000/translate", json={"text": summary, "target_lang": "english"})
+                        resp_summary = await async_httpx_client.post(
+                            "http://localhost:8000/translate",
+                            json={"text": summary, "target_lang": "english"}
+                        )
                         summary_en = resp_summary.json().get("translated", summary)
                 else:
                     title_en = title
                     summary_en = summary
-                # Sanitize summary for DALL·E prompt
                 sanitized_summary = sanitize_for_image_prompt(summary_en)
-                # Add user type context to the image prompt
                 image_prompt = sanitized_summary
                 if role == "child":
                     image_prompt += " (colorful, cartoonish, friendly, for children, illustration style)"
@@ -130,7 +187,6 @@ async def recommend(request: Request):
                     image_prompt += " (dynamic, modern, appealing to teenagers, graphic novel style)"
                 elif role == "technical":
                     image_prompt += " (clean, schematic, technical illustration, informative)"
-                # For adult, no extra style needed
                 image_url = generate_image_from_summary(title_en, image_prompt)
                 if image_url:
                     collection.update(
@@ -140,11 +196,43 @@ async def recommend(request: Request):
             return {"title": title, "summary": summary, "image_url": image_url}
     return {"error": "No suitable book found."}
 
+@app.post("/add_read_book")
+async def add_read_book_api(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    username = verify_token(token)
+    data = await request.json()
+    try:
+        add_read_book(
+            conn_string=DB_CONN_STRING,
+            db_user=DB_USER,
+            db_password=DB_PASSWORD,
+            username=username,
+            book_title=data["book_title"],
+            rating=data.get("rating")
+        )
+        return {"success": True}
+    except (KeyError, TypeError, ValueError) as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+@app.get("/user_read_books")
+async def user_read_books_api(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    username = verify_token(token)
+    try:
+        books = get_user_read_books(
+            conn_string=DB_CONN_STRING,
+            db_user=DB_USER,
+            db_password=DB_PASSWORD,
+            username=username
+        )
+        return {"books": books}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
 @app.post("/voice")
 async def voice(request: Request):
     data = await request.json()
     language = data.get("language", "english")
-    # Map frontend language to whisper language code
     lang_code = "ro" if language == "romanian" else "en"
     text = listen_with_whisper(language=lang_code)
     return JSONResponse({"text": text})
@@ -171,10 +259,11 @@ async def translate(request: Request):
         return JSONResponse({"translated": text, "error": str(e)})
 
 @app.post("/update_user")
-async def update_user_api(request: Request):
+async def update_user_api(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    username = verify_token(token)
     data = await request.json()
     try:
-        # Only allow updating fields that exist in the user table
         update_kwargs = {}
         for field in ["email", "language", "profile", "voice_enabled", "plain_password"]:
             if field in data:
@@ -183,12 +272,33 @@ async def update_user_api(request: Request):
             conn_string=DB_CONN_STRING,
             db_user=DB_USER,
             db_password=DB_PASSWORD,
-            username=data["username"],
+            username=username,
             **update_kwargs
         )
         return {"success": True}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@app.post("/delete_user")
+async def delete_user_api(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    username = verify_token(token)
+    data = await request.json()
+    try:
+        # Only allow user to delete their own account
+        if data.get("username") != username:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                detail="Unauthorized user deletion")
+        delete_user(
+            conn_string=DB_CONN_STRING,
+            db_user=DB_USER,
+            db_password=DB_PASSWORD,
+            username=username
+        )
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 @app.post("/register")
 async def register(request: Request):
@@ -207,104 +317,20 @@ async def register(request: Request):
         )
         return {"success": True}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
-@app.post("/login")
-async def login(request: Request):
-    data = await request.json()
-    user = login_user(
-        conn_string=DB_CONN_STRING,
-        db_user=DB_USER,
-        db_password=DB_PASSWORD,
-        username=data["username"],
-        plain_password=data["password"]
-    )
-    if user:
-        return {"success": True, "user": user}
-    else:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-@app.post("/update_user")
-async def update_user_api(request: Request):
-    data = await request.json()
-    try:
-        # Only allow updating fields that exist in the user table
-        update_kwargs = {}
-        for field in ["email", "language", "profile", "voice_enabled", "plain_password"]:
-            if field in data:
-                update_kwargs[field] = data[field]
-        update_user(
-            conn_string="localhost/freepdb1",
-            db_user="SYSTEM",
-            db_password="new_password",
-            username=data["username"],
-            **update_kwargs
-        )
-        return {"success": True}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.post("/add_read_book")
-async def add_read_book_api(request: Request):
-    data = await request.json()
-    try:
-        add_read_book(
-            conn_string=DB_CONN_STRING,
-            db_user=DB_USER,
-            db_password=DB_PASSWORD,
-            username=data["username"],
-            book_title=data["book_title"],
-            rating=data.get("rating")
-        )
-        return {"success": True}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.get("/user_read_books")
-async def user_read_books_api(username: str = Query(...)):
-    try:
-        books = get_user_read_books(
-            conn_string=DB_CONN_STRING,
-            db_user=DB_USER,
-            db_password=DB_PASSWORD,
-            username=username
-        )
-        return {"books": books}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    
 @app.get("/search_titles")
 async def search_titles(q: str = "", limit: int = 15, offset: int = 0):
-    # Return a list of book titles from ChromaDB matching the query string, with pagination
     try:
-        # Get all titles from ChromaDB metadata
         all_titles = []
         for doc in collection.get(include=["metadatas"])['metadatas']:
             if doc and 'title' in doc:
                 all_titles.append(doc['title'])
-        # Filter by query string (case-insensitive substring match)
         q_lower = q.lower()
         filtered = [t for t in all_titles if q_lower in t.lower()]
         filtered = sorted(filtered)
         total = len(filtered)
         paged = filtered[offset:offset+limit]
         return {"titles": paged, "total": total, "offset": offset, "limit": limit}
-    except Exception as e:
+    except (KeyError, TypeError, ValueError) as e:
         return {"titles": [], "error": str(e), "total": 0, "offset": offset, "limit": limit}
-    
-# Add Read Book endpoint
-@app.post("/add_read_book")
-async def add_read_book_api(request: Request):
-    data = await request.json()
-    try:
-        add_read_book(
-            conn_string=DB_CONN_STRING,
-            db_user=DB_USER,
-            db_password=DB_PASSWORD,
-            username=data["username"],
-            book_title=data["book_title"],
-            rating=data.get("rating")
-        )
-        return {"success": True}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))

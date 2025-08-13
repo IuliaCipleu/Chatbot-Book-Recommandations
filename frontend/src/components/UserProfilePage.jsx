@@ -41,9 +41,13 @@ export default function UserProfilePage() {
     e.preventDefault();
     setError(null); setSuccess(null);
     try {
+      const token = localStorage.getItem("jwtToken");
       const res = await fetch("http://localhost:8000/update_user", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(form),
       });
       if (!res.ok) throw new Error((await res.json()).detail || "Update failed");
@@ -60,9 +64,13 @@ export default function UserProfilePage() {
     if (!window.confirm("Are you sure you want to delete your profile? This cannot be undone.")) return;
     setError(null); setSuccess(null);
     try {
+      const token = localStorage.getItem("jwtToken");
       const res = await fetch("http://localhost:8000/delete_user", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ username: user.username }),
       });
       if (!res.ok) throw new Error((await res.json()).detail || "Delete failed");

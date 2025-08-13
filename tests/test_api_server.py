@@ -1,6 +1,6 @@
+from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
 from api_server import app
 
 client = TestClient(app)
@@ -20,70 +20,102 @@ def patch_dependencies():
             "listen_with_whisper": mock_listen_with_whisper,
         }
 
-def test_recommend_returns_book_with_summary_and_image_url(patch_dependencies):
+@patch("api_server.verify_token", return_value="testuser")
+def test_recommend_returns_book_with_summary_and_image_url(mock_verify_token, patch_dependencies):
+    # Setup mocks for a book with summary and image
     patch_dependencies["search_books"].return_value = {
         "ids": [["id1"]],
         "metadatas": [[{"title": "Book 1", "image_url": "http://img.com/1.png"}]]
     }
     patch_dependencies["get_summary_by_title"].return_value = "A summary."
-    response = client.post("/recommend", json={"query": "adventure"})
+    # Make request with valid JWT and role
+    response = client.post(
+        "/recommend",
+        json={"query": "adventure", "role": "adult"},
+        headers={"Authorization": "Bearer testtoken"}
+    )
     assert response.status_code == 200
     data = response.json()
-    assert data["title"] == "Book 1"
-    assert data["summary"] == "A summary."
-    assert data["image_url"] == "http://img.com/1.png"
+    assert data == {
+        "title": "Book 1",
+        "summary": "A summary.",
+        "image_url": "http://img.com/1.png"
+    }
 
-def test_recommend_generates_image_if_missing(patch_dependencies):
+@patch("api_server.verify_token", return_value="testuser")
+def test_recommend_generates_image_if_missing(mock_verify_token, patch_dependencies):
+    # Setup mocks for a book with summary but no image
     patch_dependencies["search_books"].return_value = {
         "ids": [["id2"]],
         "metadatas": [[{"title": "Book 2"}]]
     }
     patch_dependencies["get_summary_by_title"].return_value = "Another summary."
     patch_dependencies["generate_image_from_summary"].return_value = "http://img.com/2.png"
-    response = client.post("/recommend", json={"query": "mystery"})
+    # Make request
+    response = client.post(
+        "/recommend",
+        json={"query": "mystery", "role": "adult"},
+        headers={"Authorization": "Bearer testtoken"}
+    )
     assert response.status_code == 200
     data = response.json()
-    assert data["title"] == "Book 2"
-    assert data["summary"] == "Another summary."
-    assert data["image_url"] == "http://img.com/2.png"
+    assert data == {
+        "title": "Book 2",
+        "summary": "Another summary.",
+        "image_url": "http://img.com/2.png"
+    }
     patch_dependencies["collection"].update.assert_called_once()
 
-def test_recommend_skips_books_without_summary(patch_dependencies):
+@patch("api_server.verify_token", return_value="testuser")
+def test_recommend_skips_books_without_summary(mock_verify_token, patch_dependencies):
+    # Setup mocks for two books, only second has a valid summary
     patch_dependencies["search_books"].return_value = {
         "ids": [["id3", "id4"]],
         "metadatas": [[{"title": "Book 3"}, {"title": "Book 4"}]]
     }
-    # First book: no summary, second book: has summary
     patch_dependencies["get_summary_by_title"].side_effect = ["Summary not found.", "Good summary."]
     patch_dependencies["generate_image_from_summary"].return_value = "http://img.com/4.png"
-    response = client.post("/recommend", json={"query": "fantasy"})
+    response = client.post(
+        "/recommend",
+        json={"query": "fantasy", "role": "adult"},
+        headers={"Authorization": "Bearer testtoken"}
+    )
     assert response.status_code == 200
     data = response.json()
-    assert data["title"] == "Book 4"
-    assert data["summary"] == "Good summary."
-    assert data["image_url"] == "http://img.com/4.png"
+    assert data == {
+        "title": "Book 4",
+        "summary": "Good summary.",
+        "image_url": "http://img.com/4.png"
+    }
 
-def test_recommend_returns_error_if_no_suitable_book(patch_dependencies):
+@patch("api_server.verify_token", return_value="testuser")
+def test_recommend_returns_error_if_no_suitable_book(mock_verify_token, patch_dependencies):
+    # Setup mocks for a book with no valid summary
     patch_dependencies["search_books"].return_value = {
         "ids": [["id5"]],
         "metadatas": [[{"title": "Book 5"}]]
     }
     patch_dependencies["get_summary_by_title"].return_value = "Summary not found."
-    response = client.post("/recommend", json={"query": "unknown"})
+    response = client.post(
+        "/recommend",
+        json={"query": "unknown", "role": "adult"},
+        headers={"Authorization": "Bearer testtoken"}
+    )
     assert response.status_code == 200
     data = response.json()
-    assert "error" in data
+    print("Response JSON:", response.json())
+    assert data == {"error": "No suitable book found."}
 
-def test_voice_returns_transcribed_text(patch_dependencies):
-    patch_dependencies["listen_with_whisper"].return_value = "hello world"
+@patch("api_server.listen_with_whisper", return_value="hello world")
+def test_voice_returns_transcribed_text(mock_listen_with_whisper, patch_dependencies):
     response = client.post("/voice", json={"language": "english"})
     assert response.status_code == 200
     data = response.json()
     assert data["text"] == "hello world"
 
 def test_voice_uses_correct_language_code(patch_dependencies):
-    patch_dependencies["listen_with_whisper"].return_value = "salut lume"
+    patch_dependencies["listen_with_whisper"].return_value = "salut"
     response = client.post("/voice", json={"language": "romanian"})
     assert response.status_code == 200
     data = response.json()
-    assert data["text"] == "salut lume"
+    assert data["text"] == "salut"

@@ -7,8 +7,8 @@ or responses.
 import sys
 import os
 import openai
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.openai_config import load_openai_key
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
 def search_books(query, collection, top_k=1, model="text-embedding-3-small"):

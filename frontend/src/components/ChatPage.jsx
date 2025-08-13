@@ -17,9 +17,13 @@ function ChatPage({ onLogout }) {
     setListening(true);
     try {
       // Call backend endpoint for voice input
+      const token = localStorage.getItem("jwtToken");
       const res = await fetch("http://localhost:8000/voice", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ language }),
       });
       const data = await res.json();
@@ -41,13 +45,17 @@ function ChatPage({ onLogout }) {
     setMessages(newMessages);
     setUserInput("");
     try {
+      const token = localStorage.getItem("jwtToken");
       const res = await fetch("http://localhost:8000/recommend", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           query: userInput,
           role: "adult",
-          language,
+          language: "english", // or whatever is needed
         }),
       });
       const data = await res.json();
@@ -78,10 +86,13 @@ function ChatPage({ onLogout }) {
 
   async function translateText(text, targetLang) {
     if (targetLang === "english") return text;
-    // Call your backend translation endpoint or a public API
+    const token = localStorage.getItem("jwtToken");
     const res = await fetch("http://localhost:8000/translate", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({ text, target_lang: targetLang }),
     });
     const data = await res.json();

@@ -81,7 +81,11 @@ export default function UserReadBooks({ username }) {
   async function fetchBooks() {
     setError(null);
     try {
-      const res = await fetch(`http://localhost:8000/user_read_books?username=${encodeURIComponent(username)}`);
+      const token = localStorage.getItem('jwtToken');
+      const res = await fetch(`http://localhost:8000/user_read_books`, {
+        method: "GET",
+        headers: token ? { "Authorization": `Bearer ${token}` } : {},
+      });
       const data = await res.json();
       setBooks(data.books || []);
     } catch (e) {
@@ -94,10 +98,14 @@ export default function UserReadBooks({ username }) {
     setError(null); setSuccess(null);
     if (!newBook) return setError("Enter a book title.");
     try {
+      const token = localStorage.getItem('jwtToken');
       const res = await fetch("http://localhost:8000/add_read_book", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, book_title: newBook, rating: rating ? Number(rating) : null })
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ book_title: newBook, rating: rating ? Number(rating) : null })
       });
       if (!res.ok) throw new Error((await res.json()).detail || "Failed to add book.");
       setSuccess("Book added!");
@@ -232,27 +240,29 @@ export default function UserReadBooks({ username }) {
           />
         </div>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 8 }}>
-            <thead>
+        <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: 8 }}>
+          <thead>
+            <tr>
+              <th style={{ padding: 8, borderBottom: '1px solid #ccc', color: '#000' }}>Title</th>
+              <th style={{ padding: 8, borderBottom: '1px solid #ccc', color: '#000' }}>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagedAllBooks().length === 0 && (
               <tr>
-                <th style={{ cursor: 'pointer', padding: 8, borderBottom: '1px solid #ccc', color: '#000' }} onClick={() => {
-                  setSortAllBy('title'); setSortAllDir(sortAllBy === 'title' && sortAllDir === 'asc' ? 'desc' : 'asc');
-                }}>Title {sortAllDir === 'asc' ? '▲' : '▼'}</th>
-                <th style={{ padding: 8, borderBottom: '1px solid #ccc', color: '#000' }}>Action</th>
+                <td colSpan={2} style={{ color: '#888', textAlign: 'center', padding: 12 }}>No books found.</td>
               </tr>
-            </thead>
-            <tbody>
-              {filteredAllBooks().length === 0 && (
-                <tr><td colSpan={2} style={{ color: '#888', textAlign: 'center', padding: 12 }}>No books found.</td></tr>
-              )}
-              {pagedAllBooks().map((title, i) => (
-                <tr key={i}>
-                  <td style={{ padding: 8, borderBottom: '1px solid #eee', color: '#000' }}>{title}</td>
-                  <td style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'center' }}>
-                    <button onClick={() => handleAddFromAll(title)} style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 12px', fontWeight: 500, cursor: 'pointer' }}>Mark as Read</button>
-                  </td>
-                </tr>
-              ))}
+            )}
+            {pagedAllBooks().map((title, i) => (
+              <tr key={i}>
+                <td style={{ padding: 8, borderBottom: '1px solid #eee', color: '#000' }}>{title}</td>
+                <td style={{ padding: 8, borderBottom: '1px solid #eee', textAlign: 'center' }}>
+                  <button onClick={() => handleAddFromAll(title)} style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 12px', fontWeight: 500, cursor: 'pointer' }}>Mark as Read</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
         {/* Pagination controls for All Books */}
         <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, margin: '12px 0' }}>
           <button
@@ -269,8 +279,6 @@ export default function UserReadBooks({ username }) {
             style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid #bbb', background: allPage >= Math.ceil(allTotal / ALL_PER_PAGE) ? '#eee' : '#fff', color: '#1976d2', cursor: allPage >= Math.ceil(allTotal / ALL_PER_PAGE) ? 'not-allowed' : 'pointer', fontSize: 18 }}
           >-&gt;</button>
         </div>
-            </tbody>
-          </table>
         </div>
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 10, background: '#fff', borderRadius: 8 }}>
           <thead>

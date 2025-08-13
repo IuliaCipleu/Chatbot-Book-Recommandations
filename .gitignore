@@ -138,11 +138,14 @@ celerybeat.pid
 .env
 .envrc
 .venv
+.venv12
 env/
 venv/
+venv12/
 ENV/
 env.bak/
 venv.bak/
+venv12.bak/
 
 # Spyder project settings
 .spyderproject
@@ -209,6 +212,6 @@ __marimo__/
 # Ignore sensitive or generated data files
 data/bad_words.json
 
-# Ignore all files in chroma_db except chroma.sqlite3
+# Ignore all files in chroma_db
 chroma_db/*
-!chroma_db/chroma.sqlite3chroma_db/
+chroma_db/chroma.sqlite3

@@ -1,6 +1,6 @@
-import pytest
 from unittest.mock import patch, MagicMock
 import builtins
+import pytest
 
 import cli.chatbot as chatbot
 
@@ -63,8 +63,10 @@ def test_main_flow_text(monkeypatch):
         "ids": [["id1"]],
         "metadatas": [[{"title": "Brave Little Girl"}]]
     })
-    monkeypatch.setattr(chatbot, "get_summary_by_title", lambda t: "A story about courage and kindness.")
-    monkeypatch.setattr(chatbot, "generate_image_from_summary", lambda t, s: "http://img.com/cover.png")
+    monkeypatch.setattr(chatbot, "get_summary_by_title", lambda t:
+        "A story about courage and kindness.")
+    monkeypatch.setattr(chatbot, "generate_image_from_summary", lambda t, s:
+        "http://img.com/cover.png")
     monkeypatch.setattr(chatbot, "translate", lambda t, lang: t)
     # Patch print to capture output
     printed = []
@@ -88,14 +90,17 @@ def test_main_flow_voice(monkeypatch):
             return "exit"
     monkeypatch.setattr(builtins, "input", fake_input)
     monkeypatch.setattr(chatbot, "load_openai_key", lambda: None)
-    monkeypatch.setattr(chatbot, "listen_with_whisper", lambda **kwargs: "A book for a teen about science")
+    monkeypatch.setattr(chatbot, "listen_with_whisper", lambda **kwargs:
+        "A book for a teen about science")
     monkeypatch.setattr(chatbot, "infer_reader_profile", lambda x: "teen")
     monkeypatch.setattr(chatbot, "search_books", lambda q, c, top_k=1: {
         "ids": [["id2"]],
         "metadatas": [[{"title": "Teen Science"}]]
     })
-    monkeypatch.setattr(chatbot, "get_summary_by_title", lambda t: "A science adventure for teens.")
-    monkeypatch.setattr(chatbot, "generate_image_from_summary", lambda t, s: "http://img.com/science.png")
+    monkeypatch.setattr(chatbot, "get_summary_by_title", lambda t:
+        "A science adventure for teens.")
+    monkeypatch.setattr(chatbot, "generate_image_from_summary", lambda t, s:
+        "http://img.com/science.png")
     monkeypatch.setattr(chatbot, "translate", lambda t, lang: t)
     printed = []
     monkeypatch.setattr(builtins, "print", lambda *a, **k: printed.append(" ".join(map(str, a))))
@@ -149,8 +154,10 @@ def test_main_flow_romanian(monkeypatch):
         "ids": [["id1"]],
         "metadatas": [[{"title": "Fetița Curajoasă"}]]
     })
-    monkeypatch.setattr(chatbot, "get_summary_by_title", lambda t: "O poveste despre curaj și bunătate.")
-    monkeypatch.setattr(chatbot, "generate_image_from_summary", lambda t, s: "http://img.com/romanian.png")
+    monkeypatch.setattr(chatbot, "get_summary_by_title", lambda t: 
+        "O poveste despre curaj și bunătate.")
+    monkeypatch.setattr(chatbot, "generate_image_from_summary", lambda t, s: 
+        "http://img.com/romanian.png")
     monkeypatch.setattr(chatbot, "translate", lambda t, lang: t + " [ro]" if lang == "romanian" else t)
     printed = []
     monkeypatch.setattr(builtins, "print", lambda *a, **k: printed.append(" ".join(map(str, a))))
@@ -158,3 +165,4 @@ def test_main_flow_romanian(monkeypatch):
     assert any("Carte recomandată: Fetița Curajoasă [ro]" in line for line in printed)
     assert any("Rezumat:" in line for line in printed)
     assert any("Imagine generată: http://img.com/romanian.png" in line for line in printed)
+    

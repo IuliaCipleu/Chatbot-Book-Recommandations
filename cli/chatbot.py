@@ -8,15 +8,14 @@ import os
 
 import chromadb
 import openai
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from search.retriever import search_books
 from search.summary_tool import get_summary_by_title
 from utils.openai_config import load_openai_key
 from utils.image_generator import generate_image_from_summary
 from utils.voice_input import listen_with_whisper
 from utils.filter import is_appropriate, EXCLUSION_KEYWORDS, infer_reader_profile
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Initialize ChromaDB client
 client = chromadb.PersistentClient(path="./chroma_db")

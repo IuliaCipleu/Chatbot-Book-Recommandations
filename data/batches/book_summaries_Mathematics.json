@@ -1,0 +1,31 @@
+[
+  {
+    "title": "Wonderful Life: The Burgess Shale and the Nature of History",
+    "summary": " Gould's thesis in Wonderful Life was that chance was one of the decisive factors in the evolution of life on earth. He based this argument on the wonderfully preserved fossil fauna of the Burgess Shale, animals from around 505 million years ago, just after the Cambrian explosion. Gould argued that although the Burgess animals were all exquisitely adapted to their environment, most of them left no modern descendants and, more importantly, that the surviving creatures did not seem better adapted than their now extinct contemporaneous neighbors. He proposed that given a chance to \"rewind the universe\" and flip the coin of natural selection again, we might find ourselves living in a world populated by descendants of Hallucigenia rather than Pikaia. This seems to indicate that fitness for existing conditions does not ensure long-term survival, especially when conditions change rapidly, and that the survival of many species depends more on chance events and features, which Gould terms exaptations, fortuitously beneficial under future conditions than on features best adapted under the present environment (see also extinction event). He regarded Opabinia as so important to understanding the Cambrian explosion that he wanted to call his book Homage to Opabinia.",
+    "genre": [
+      "Mathematics",
+      "Non-fiction",
+      "Science"
+    ],
+    "author": "Stephen Jay Gould"
+  },
+  {
+    "title": "The Soul of a New Machine",
+    "summary": " The book opens with a turf war between two computer design groups within Data General Corporation, a minicomputer vendor in the 1970s. Most of the senior designers are assigned the \"sexy\" job of designing the next generation machine, which will be done in North Carolina. Their project (code-named \"Fountainhead\") is to give Data General a machine to compete with the new VAX computer from Digital Equipment Corporation (DEC), which is starting to take over the new 32-bit minicomputer market. The few senior designers who are left in corporate headquarters at Westborough, MA are given the much more humble job of designing enhancements for the existing product lines. Tom West, the leader of Westborough designers, starts a skunkworks project which becomes a backup plan in case Fountainhead fails. Eventually, the skunk works project (code-named \"Eagle\") becomes the company's only hope in catching up with DEC. In order to complete the project on-time, West takes risks in not only new technology but also relying on new college graduates (who have never designed anything so complex) to make up the bulk of his design team. The book follows many of the designers as they give up every waking moment of their lives in order to design and debug the new machine on schedule.",
+    "genre": [
+      "Mathematics",
+      "Science"
+    ],
+    "author": "Tracy Kidder"
+  },
+  {
+    "title": "Ages in Chaos",
+    "summary": " Velikovsky had put forward his ideas briefly in Theses for the Reconstruction of Ancient History in 1945, where he claimed that the history of the ancient Near East down to the time of Alexander the Great is garbled, but Ages in Chaos was his first full-length work on the subject. His starting point for the first volume of the series was that the Exodus took place not, as orthodoxy has it, at some point during the Egyptian New Kingdom, but at the fall of the Middle Kingdom. In this and later volumes, he made heavy use of the concept of \"ghost doubles\" or alter-egos: historical figures who were known by different names in two different sources (e.g. Egyptian and Greek) and were considered to be entirely different people living in different centuries, but who he proposed to be actually erroneously dated accounts of the same individuals and events. First he claimed that the Ipuwer Papyrus came from the beginning of Egypt's Second Intermediate Period, and that this was an Egyptian account of the Plagues of Egypt. He then identified Tutimaios as the Pharaoh of the Exodus (much earlier than any of the mainstream candidates), the Hyksos with the biblical Amalekites, the Egyptian Pharaoh Hatshepsut with the Biblical Queen of Sheba, the land of Punt with Solomon's kingdom, and Pharaoh Thutmose III with the Biblical King Shishak. He claimed that the Egyptian Amarna letters from the late 18th Dynasty describe events from the kingdoms of Israel and Judah, from roughly the time of King Ahab.",
+    "genre": [
+      "Mathematics",
+      "Science",
+      "Sociology"
+    ],
+    "author": "Immanuel Velikovsky"
+  }
+]

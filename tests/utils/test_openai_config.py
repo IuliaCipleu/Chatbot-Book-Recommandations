@@ -6,14 +6,14 @@ from utils.openai_config import load_openai_key
 def test_load_openai_key_sets_api_key(monkeypatch):
     """Test that the OpenAI API key is set when the environment variable is present."""
     monkeypatch.setenv("OPENAI_API_KEY", "test-key-123")
-    with mock.patch("openai.api_key", new_callable=mock.PropertyMock) as mock_api_key:
+    with mock.patch("openai.api_key", new_callable=mock.PropertyMock) as _:
         load_openai_key()
         assert os.getenv("OPENAI_API_KEY") == "test-key-123"
 
 def test_load_openai_key_strips_whitespace(monkeypatch):
     """Test that leading/trailing whitespace is stripped from the API key."""
     monkeypatch.setenv("OPENAI_API_KEY", "  test-key-456  ")
-    with mock.patch("openai.api_key", new_callable=mock.PropertyMock) as mock_api_key:
+    with mock.patch("openai.api_key", new_callable=mock.PropertyMock) as _:
         load_openai_key()
         assert os.getenv("OPENAI_API_KEY").strip() == "test-key-456"
 

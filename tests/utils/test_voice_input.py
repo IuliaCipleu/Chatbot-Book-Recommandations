@@ -1,7 +1,7 @@
-import os
-import pytest
 from unittest import mock
 import numpy as np
+import wave
+import pytest
 
 import utils.voice_input as voice_input
 
@@ -11,64 +11,23 @@ def mock_whisper_model():
     mock_model.transcribe.return_value = {"text": "hello world"}
     return mock_model
 
-@pytest.fixture
-def mock_audio():
-    # 1 second of silence at 16kHz
-    return np.zeros(16000, dtype=np.float32)
-
 @mock.patch("utils.voice_input.whisper.load_model")
 @mock.patch("utils.voice_input.sd.rec")
 @mock.patch("utils.voice_input.sd.wait")
 @mock.patch("utils.voice_input.wave.open")
 @mock.patch("utils.voice_input.os.remove")
 def test_listen_with_whisper_success(
-    mock_remove, mock_wave_open, mock_sd_wait, mock_sd_rec, mock_load_model, mock_audio, mock_whisper_model
+    mock_remove, mock_wave_open, mock_sd_wait, mock_sd_rec, mock_load_model
 ):
-    mock_load_model.return_value = mock_whisper_model
+    mock_model = mock.Mock()
+    mock_model.transcribe.return_value = {"text": "hello world"}
+    mock_load_model.return_value = mock_model
     mock_sd_rec.return_value = np.zeros((5 * 16000, 1), dtype=np.float32)
     mock_wave_file = mock.MagicMock()
     mock_wave_open.return_value.__enter__.return_value = mock_wave_file
 
     result = voice_input.listen_with_whisper(duration=1)
     assert result == "hello world"
-    mock_remove.assert_called_once_with("temp_audio.wav")
-
-@mock.patch("utils.voice_input.whisper.load_model")
-@mock.patch("utils.voice_input.sd.rec")
-@mock.patch("utils.voice_input.sd.wait")
-@mock.patch("utils.voice_input.wave.open")
-@mock.patch("utils.voice_input.os.remove")
-def test_listen_with_whisper_no_text(
-    mock_remove, mock_wave_open, mock_sd_wait, mock_sd_rec, mock_load_model
-):
-    mock_model = mock.Mock()
-    mock_model.transcribe.return_value = {}
-    mock_load_model.return_value = mock_model
-    mock_sd_rec.return_value = np.zeros((5 * 16000, 1), dtype=np.float32)
-    mock_wave_file = mock.MagicMock()
-    mock_wave_open.return_value.__enter__.return_value = mock_wave_file
-
-    result = voice_input.listen_with_whisper(duration=1)
-    assert result == ""
-    mock_remove.assert_called_once_with("temp_audio.wav")
-
-@mock.patch("utils.voice_input.whisper.load_model")
-@mock.patch("utils.voice_input.sd.rec")
-@mock.patch("utils.voice_input.sd.wait")
-@mock.patch("utils.voice_input.wave.open")
-@mock.patch("utils.voice_input.os.remove")
-def test_listen_with_whisper_transcribe_exception(
-    mock_remove, mock_wave_open, mock_sd_wait, mock_sd_rec, mock_load_model
-):
-    mock_model = mock.Mock()
-    mock_model.transcribe.side_effect = Exception("transcribe failed")
-    mock_load_model.return_value = mock_model
-    mock_sd_rec.return_value = np.zeros((5 * 16000, 1), dtype=np.float32)
-    mock_wave_file = mock.MagicMock()
-    mock_wave_open.return_value.__enter__.return_value = mock_wave_file
-
-    result = voice_input.listen_with_whisper(duration=1)
-    assert result == ""
     mock_remove.assert_called_once_with("temp_audio.wav")
 
 @mock.patch("utils.voice_input.whisper.load_model")
@@ -91,22 +50,24 @@ def test_listen_with_whisper_cleanup_exception(
     assert result == "cleanup test"
     mock_remove.assert_called_once_with("temp_audio.wav")
 
-def mock_audio(*args, **kwargs):
+def mock_audio(**kwargs):
     # Return a numpy array of zeros (simulate silence)
-    import numpy as np
     return np.zeros((int(kwargs.get('samplerate', 16000) * kwargs.get('duration', 5)), 1), dtype='float32')
 
-def test_listen_with_whisper_success(monkeypatch, tmp_path):
+def test_listen_with_whisper_success_monkeypatch(monkeypatch, tmp_path):
     # Patch dependencies
     dummy_text = "hello world"
     mock_model = mock.MagicMock()
     mock_model.transcribe.return_value = {"text": dummy_text}
     monkeypatch.setattr(voice_input.whisper, "load_model", lambda name: mock_model)
-    monkeypatch.setattr(voice_input.sd, "rec", lambda *a, **k: mock_audio(duration=a[0]/k['samplerate'], samplerate=k['samplerate']))
+    monkeypatch.setattr(voice_input.sd, "rec", lambda *a, **k: mock_audio(
+        duration=a[0]/k['samplerate'],
+        samplerate=k['samplerate'])
+                        )
     monkeypatch.setattr(voice_input.sd, "wait", lambda: None)
     monkeypatch.setattr(voice_input.os, "remove", lambda path: None)
     # Patch wave.open to use a real file in tmp_path
-    import wave
+
     orig_wave_open = wave.open
     def fake_wave_open(path, mode):
         # Always use a file in tmp_path
@@ -120,10 +81,11 @@ def test_listen_with_whisper_no_text(monkeypatch, tmp_path):
     mock_model = mock.MagicMock()
     mock_model.transcribe.return_value = {"not_text": "nope"}
     monkeypatch.setattr(voice_input.whisper, "load_model", lambda name: mock_model)
-    monkeypatch.setattr(voice_input.sd, "rec", lambda *a, **k: mock_audio(duration=a[0]/k['samplerate'], samplerate=k['samplerate']))
+    monkeypatch.setattr(voice_input.sd, "rec", lambda *a, **k: mock_audio(
+        duration=a[0]/k['samplerate'], samplerate=k['samplerate']
+        ))
     monkeypatch.setattr(voice_input.sd, "wait", lambda: None)
     monkeypatch.setattr(voice_input.os, "remove", lambda path: None)
-    import wave
     orig_wave_open = wave.open
     def fake_wave_open(path, mode):
         return orig_wave_open(str(tmp_path / "temp_audio.wav"), mode)
@@ -138,7 +100,6 @@ def test_listen_with_whisper_transcribe_exception(monkeypatch, tmp_path):
     monkeypatch.setattr(voice_input.sd, "rec", lambda *a, **k: mock_audio(duration=a[0]/k['samplerate'], samplerate=k['samplerate']))
     monkeypatch.setattr(voice_input.sd, "wait", lambda: None)
     monkeypatch.setattr(voice_input.os, "remove", lambda path: None)
-    import wave
     orig_wave_open = wave.open
     def fake_wave_open(path, mode):
         return orig_wave_open(str(tmp_path / "temp_audio.wav"), mode)
@@ -155,10 +116,11 @@ def test_listen_with_whisper_remove_exception(monkeypatch, tmp_path):
     def raise_remove(path):
         raise OSError("fail remove")
     monkeypatch.setattr(voice_input.os, "remove", raise_remove)
-    import wave
     orig_wave_open = wave.open
     def fake_wave_open(path, mode):
         return orig_wave_open(str(tmp_path / "temp_audio.wav"), mode)
     monkeypatch.setattr(voice_input.wave, "open", fake_wave_open)
     result = voice_input.listen_with_whisper(duration=0.01)
     assert result == "hi"
+    
+    

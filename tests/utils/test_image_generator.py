@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import patch, MagicMock
 from utils.image_generator import generate_image_from_summary
 
@@ -9,7 +8,7 @@ def test_generate_image_success():
         url = generate_image_from_summary("Test Book", "A summary.")
         assert url == "http://fake-url.com/image.png"
         mock_generate.assert_called_once()
-        args, kwargs = mock_generate.call_args
+        _, kwargs = mock_generate.call_args
         assert kwargs["model"] == "dall-e-3"
         assert "Test Book" in kwargs["prompt"]
         assert "A summary." in kwargs["prompt"]

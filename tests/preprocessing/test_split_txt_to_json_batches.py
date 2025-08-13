@@ -1,8 +1,6 @@
 import os
 import json
 import tempfile
-import shutil
-import pytest
 from preprocessing.split_txt_to_json_batches import split_txt_to_json_batches
 
 def make_sample_txt(lines):
@@ -17,7 +15,7 @@ def read_json(path):
         return json.load(f)
 
 def test_split_creates_correct_number_of_batches(tmp_path):
-    # 250 valid books, batch_size=100 -> 3 batches (100, 100, 50)
+    # 250 valid books, each with unique genre, so 250 files (one per genre)
     lines = [
         f"{i}\t/fb{i}\tBook{i}\tAuthor{i}\t2000\tGenre{i}\tSummary{i}"
         for i in range(250)
@@ -26,11 +24,16 @@ def test_split_creates_correct_number_of_batches(tmp_path):
     out_dir = tmp_path / "batches"
     split_txt_to_json_batches(txt_path, str(out_dir), batch_size=100)
     files = sorted(os.listdir(out_dir))
-    assert len(files) == 3
-    assert all(f.startswith("book_summaries_batch_") for f in files)
-    # Check counts
-    counts = [len(read_json(os.path.join(out_dir, f))) for f in files]
-    assert counts == [100, 100, 50]
+    # Each file should be named by genre
+    assert all(f.startswith("book_summaries_") and f.endswith(".json") for f in files)
+    # There should be 250 files (one per genre)
+    assert len(files) == 250
+    # Each file should contain one book with correct genre
+    for f in files:
+        data = read_json(os.path.join(out_dir, f))
+        assert isinstance(data, list)
+        assert len(data) == 1
+        assert data[0]["genre"][0].replace(" ", "_") in f
     os.remove(txt_path)
 
 def test_split_skips_incomplete_and_empty_lines(tmp_path):
@@ -46,13 +49,19 @@ def test_split_skips_incomplete_and_empty_lines(tmp_path):
     out_dir = tmp_path / "batches"
     split_txt_to_json_batches(txt_path, str(out_dir), batch_size=2)
     files = sorted(os.listdir(out_dir))
-    assert len(files) == 1
-    data = read_json(os.path.join(out_dir, files[0]))
-    assert set(data.keys()) == {"Book1", "Book5"}
+    # Only valid books (Book1, Book5) should be present, each in their genre file
+    assert len(files) == 2
+    found_titles = set()
+    for f in files:
+        data = read_json(os.path.join(out_dir, f))
+        assert isinstance(data, list)
+        assert len(data) == 1
+        found_titles.add(data[0]["title"])
+    assert found_titles == {"Book1", "Book5"}
     os.remove(txt_path)
 
 def test_split_handles_exact_batch(tmp_path):
-    # 4 books, batch_size=2 -> 2 batches of 2
+    # 4 books, each with unique genre, so 4 files
     lines = [
         f"{i}\t/fb{i}\tBook{i}\tAuthor{i}\t2000\tGenre{i}\tSummary{i}"
         for i in range(4)
@@ -61,10 +70,11 @@ def test_split_handles_exact_batch(tmp_path):
     out_dir = tmp_path / "batches"
     split_txt_to_json_batches(txt_path, str(out_dir), batch_size=2)
     files = sorted(os.listdir(out_dir))
-    assert len(files) == 2
+    assert len(files) == 4
     for f in files:
         data = read_json(os.path.join(out_dir, f))
-        assert len(data) == 2
+        assert isinstance(data, list)
+        assert len(data) == 1
     os.remove(txt_path)
 
 def test_split_creates_output_dir(tmp_path):
@@ -78,6 +88,8 @@ def test_split_creates_output_dir(tmp_path):
     assert os.path.exists(out_dir)
     files = os.listdir(out_dir)
     assert len(files) == 1
+    # File should be named by genre
+    assert files[0].startswith("book_summaries_") and files[0].endswith(".json")
     os.remove(txt_path)
 
 def test_split_empty_input_file(tmp_path):

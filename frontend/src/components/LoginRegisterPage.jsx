@@ -19,6 +19,8 @@ export default function LoginRegisterPage({ onLogin, onShowRegister }) {
       const data = await res.json();
       if (data.user) {
         localStorage.setItem('user', JSON.stringify(data.user));
+        // After successful login:
+        localStorage.setItem("jwtToken", data.access_token);
       }
       onLogin();
     } catch (err) {
