@@ -38,7 +38,10 @@ def translate(text, target_language):
     """
     if target_language == "english":
         return text
-    prompt = f"Translate the following text to Romanian, preserving meaning and style.\n\nText: {text}"
+    prompt = (
+        f"Translate the following text to Romanian, preserving meaning and style.\n\n"
+        f"Text: {text}"
+    )
     response = openai.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}]

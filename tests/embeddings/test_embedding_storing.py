@@ -83,7 +83,8 @@ def test_embed_and_store_in_batches_invalid_model(monkeypatch):
     monkeypatch.setattr(openai.embeddings, "create", lambda **kwargs:
         DummyResp([1.0, 2.0, 3.0]))
     with pytest.raises(ValueError):
-        es.embed_and_store_in_batches(collection, summaries, batch_size=1, resume=False, embedding_model="not-a-real-model")
+        es.embed_and_store_in_batches(collection, summaries, batch_size=1, resume=False,
+                                      embedding_model="not-a-real-model")
 
 def test_main_full(monkeypatch):
     # Simulate 3 batch files, each with 2 books

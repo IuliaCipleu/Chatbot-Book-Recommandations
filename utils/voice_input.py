@@ -9,11 +9,13 @@ import numpy as np
 
 def listen_with_whisper(duration=5, sample_rate=16000, language="en"):
     """
-    Records audio from the microphone for a specified duration, transcribes the speech using OpenAI's Whisper model, and returns the recognized text.
+    Records audio from the microphone for a specified duration, transcribes the speech using
+    OpenAI's Whisper model, and returns the recognized text.
     Args:
         duration (int, optional): Duration of the audio recording in seconds. Defaults to 5.
         sample_rate (int, optional): Sampling rate for the audio recording. Defaults to 16000.
-        language (str, optional): Language code for transcription (e.g., "en" for English). Defaults to "en".
+        language (str, optional): Language code for transcription (e.g., "en" for English).
+        Defaults to "en".
     Returns:
         str: The transcribed text from the recorded audio.
     """
@@ -49,7 +51,8 @@ def listen_with_whisper(duration=5, sample_rate=16000, language="en"):
         # Double-check file is closed and accessible
         try:
             with wave.open(temp_path, 'rb') as wf_read:
-                channels = wf_read.getnchannels()  # Just check if file can be opened and read channels
+                channels = wf_read.getnchannels()  
+                # Just check if file can be opened and read channels
                 framerate = wf_read.getframerate()  # Check if framerate can be read
                 # No need to call setsampwidth on wf_read (Wave_read object)
         except wave.Error as file_err:

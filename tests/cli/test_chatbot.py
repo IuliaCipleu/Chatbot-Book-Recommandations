@@ -154,9 +154,9 @@ def test_main_flow_romanian(monkeypatch):
         "ids": [["id1"]],
         "metadatas": [[{"title": "Fetița Curajoasă"}]]
     })
-    monkeypatch.setattr(chatbot, "get_summary_by_title", lambda t: 
+    monkeypatch.setattr(chatbot, "get_summary_by_title", lambda t:
         "O poveste despre curaj și bunătate.")
-    monkeypatch.setattr(chatbot, "generate_image_from_summary", lambda t, s: 
+    monkeypatch.setattr(chatbot, "generate_image_from_summary", lambda t, s:
         "http://img.com/romanian.png")
     monkeypatch.setattr(chatbot, "translate", lambda t,
                         lang: t + " [ro]" if lang == "romanian" else t)

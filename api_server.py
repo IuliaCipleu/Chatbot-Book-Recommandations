@@ -51,7 +51,6 @@ from utils.voice_input import listen_with_whisper
 from utils.image_generator import generate_image_from_summary
 from utils.filter import (
     is_appropriate,
-    infer_reader_profile,
     sanitize_for_image_prompt,
     is_similar_to_high_rated,
 )
@@ -193,12 +192,20 @@ async def recommend(
                 sanitized_summary = sanitize_for_image_prompt(summary_en)
                 image_prompt = sanitized_summary
                 if role == "child":
-                    image_prompt += " (colorful, cartoonish, friendly, for children, illustration style)"
+                    image_prompt += (
+                        " (colorful, cartoonish, friendly, for children, illustration style)"
+                    )
                 elif role == "teen":
-                    image_prompt += " (dynamic, modern, appealing to teenagers, graphic novel style)"
+                    image_prompt += (
+                        " (dynamic, modern, appealing to teenagers, graphic novel style)"
+                    )
                 elif role == "technical":
-                    image_prompt += " (clean, schematic, technical illustration, informative)"
-                image_url = generate_image_from_summary(title_en, image_prompt)
+                    image_prompt += (
+                        " (clean, schematic, technical illustration, informative)"
+                    )
+                image_url = generate_image_from_summary(
+                    title_en, image_prompt
+                )
                 if image_url:
                     collection.update(
                         ids=[title],
@@ -256,9 +263,17 @@ async def translate(request: Request):
     if not text:
         return JSONResponse({"translated": ""})
     if target_lang == "romanian":
-        prompt = f"Translate the following text to Romanian. Only return the translated text.\n\n{text}"
+        prompt = (
+            "Translate the following text to Romanian. "
+            "Only return the translated text.\n\n"
+            f"{text}"
+        )
     else:
-        prompt = f"Translate the following text to English. Only return the translated text.\n\n{text}"
+        prompt = (
+            "Translate the following text to English. "
+            "Only return the translated text.\n\n"
+            f"{text}"
+        )
     try:
         response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -292,7 +307,8 @@ async def update_user_api(request: Request, credentials: HTTPAuthorizationCreden
 
 
 @app.post("/delete_user")
-async def delete_user_api(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def delete_user_api(request: Request,
+                          credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     username = verify_token(token)
     data = await request.json()

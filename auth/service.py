@@ -20,7 +20,9 @@ def add_read_book(conn_string, db_user, db_password, username, book_title, ratin
             book_id = book_row[0]
         else:
             # Instead of inserting, return a message to the user
-            raise Exception("Unfortunately, this book is not included in our DB. We are working on this.")
+            raise Exception(
+                "Unfortunately, this book is not included in our DB. We are working on this."
+                )
         # Insert into user_read_books
         cur.execute("""
             MERGE INTO user_read_books ur
@@ -106,22 +108,26 @@ def insert_user(
 
         conn.commit()
         print(f"User '{username}' inserted successfully.")
-    
+
     except Exception as e:
         print(f"Failed to insert user: {e}")
-    
+
     finally:
         if 'cur' in locals():
             cur.close()
         if 'conn' in locals():
             conn.close()
-            
+
 def get_user(conn_string, db_user, db_password, username):
     """Retrieve a user by username."""
     try:
         conn = oracledb.connect(user=db_user, password=db_password, dsn=conn_string)
         cur = conn.cursor()
-        cur.execute("SELECT username, email, language, profile, voice_enabled FROM users WHERE username = :1", (username,))
+        cur.execute(
+            "SELECT username, email, language, profile, voice_enabled "
+            "FROM users WHERE username = :1",
+            (username,)
+        )
         row = cur.fetchone()
         if row:
             return {
@@ -195,7 +201,11 @@ def login_user(conn_string, db_user, db_password, username, plain_password):
     try:
         conn = oracledb.connect(user=db_user, password=db_password, dsn=conn_string)
         cur = conn.cursor()
-        cur.execute("SELECT password_hash, email, language, profile, voice_enabled FROM users WHERE username = :1", (username,))
+        cur.execute(
+            "SELECT password_hash, email, language, profile, voice_enabled "
+            "FROM users WHERE username = :1",
+            (username,)
+        )
         row = cur.fetchone()
         if not row:
             print("User not found.")
