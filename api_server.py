@@ -66,8 +66,20 @@ from auth.service import (
 load_dotenv()
 DB_CONN_STRING = os.environ.get("DB_CONN_STRING")
 DB_USER = os.environ.get("DB_USER")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "new_password")
-SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "supersecretkey")
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
+# Validate required environment variables
+missing_env = []
+for var, val in [
+    ("DB_CONN_STRING", DB_CONN_STRING),
+    ("DB_USER", DB_USER),
+    ("DB_PASSWORD", DB_PASSWORD),
+    ("JWT_SECRET_KEY", SECRET_KEY)
+]:
+    if not val:
+        missing_env.append(var)
+if missing_env:
+    raise RuntimeError(f"Missing required environment variables: {', '.join(missing_env)}. Please set them in your .env file.")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 security = HTTPBearer()
