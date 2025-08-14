@@ -7,9 +7,11 @@ These tests cover the following scenarios:
 - Ensuring correct behavior when Whisper returns no transcription text.
 - Handling exceptions during the transcription process.
 - Handling exceptions during file removal after transcription.
-Fixtures and mocking are used to isolate the function from external dependencies such as audio recording, file I/O, and Whisper model loading.
+Fixtures and mocking are used to isolate the function from external dependencies such as audio
+recording, file I/O, and Whisper model loading.
 Tested functions:
-- `listen_with_whisper(duration)`: Records audio, saves it to a temporary file, transcribes it using Whisper, and cleans up the temporary file.
+- `listen_with_whisper(duration)`: Records audio, saves it to a temporary file, transcribes it
+using Whisper, and cleans up the temporary file.
 Test utilities:
 - `mock_audio`: Simulates silent audio input for testing.
 """
@@ -23,6 +25,9 @@ import utils.voice_input as voice_input
 
 @pytest.fixture
 def mock_whisper_model():
+    """
+    Return a mock Whisper model with a transcribe method for testing.
+    """
     mock_model = mock.Mock()
     mock_model.transcribe.return_value = {"text": "hello world"}
     return mock_model
@@ -35,6 +40,9 @@ def mock_whisper_model():
 def test_listen_with_whisper_success(
     mock_remove, mock_wave_open, mock_sd_wait, mock_sd_rec, mock_load_model
 ):
+    """
+    Test listen_with_whisper returns correct text and cleans up temp file on success.
+    """
     mock_model = mock.Mock()
     mock_model.transcribe.return_value = {"text": "hello world"}
     mock_load_model.return_value = mock_model
@@ -54,6 +62,9 @@ def test_listen_with_whisper_success(
 def test_listen_with_whisper_cleanup_exception(
     mock_remove, mock_wave_open, mock_sd_wait, mock_sd_rec, mock_load_model
 ):
+    """
+    Test listen_with_whisper returns text even if temp file removal raises an exception.
+    """
     mock_model = mock.Mock()
     mock_model.transcribe.return_value = {"text": "cleanup test"}
     mock_load_model.return_value = mock_model
@@ -68,11 +79,17 @@ def test_listen_with_whisper_cleanup_exception(
 
 def mock_audio(**kwargs):
     # Return a numpy array of zeros (simulate silence)
+    """
+    Simulate silent audio input by returning a numpy array of zeros.
+    """
     return np.zeros((int(kwargs.get('samplerate', 16000) * kwargs.get('duration', 5)), 1),
                     dtype='float32')
 
 def test_listen_with_whisper_success_monkeypatch(monkeypatch, tmp_path):
     # Patch dependencies
+    """
+    Test listen_with_whisper with monkeypatched dependencies for successful transcription.
+    """
     dummy_text = "hello world"
     mock_model = mock.MagicMock()
     mock_model.transcribe.return_value = {"text": dummy_text}
@@ -95,6 +112,9 @@ def test_listen_with_whisper_success_monkeypatch(monkeypatch, tmp_path):
     assert result == dummy_text
 
 def test_listen_with_whisper_no_text(monkeypatch, tmp_path):
+    """
+    Test listen_with_whisper returns empty string if Whisper returns no transcription text.
+    """
     mock_model = mock.MagicMock()
     mock_model.transcribe.return_value = {"not_text": "nope"}
     monkeypatch.setattr(voice_input.whisper, "load_model", lambda name: mock_model)
@@ -111,6 +131,9 @@ def test_listen_with_whisper_no_text(monkeypatch, tmp_path):
     assert result == ""
 
 def test_listen_with_whisper_transcribe_exception(monkeypatch, tmp_path):
+    """
+    Test listen_with_whisper returns empty string if transcription raises an exception.
+    """
     mock_model = mock.MagicMock()
     mock_model.transcribe.side_effect = Exception("fail")
     monkeypatch.setattr(voice_input.whisper, "load_model", lambda name: mock_model)
@@ -126,6 +149,9 @@ def test_listen_with_whisper_transcribe_exception(monkeypatch, tmp_path):
     assert result == ""
 
 def test_listen_with_whisper_remove_exception(monkeypatch, tmp_path):
+    """
+    Test listen_with_whisper returns empty string if transcription raises an exception.
+    """
     mock_model = mock.MagicMock()
     mock_model.transcribe.return_value = {"text": "hi"}
     monkeypatch.setattr(voice_input.whisper, "load_model", lambda name: mock_model)

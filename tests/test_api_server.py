@@ -1,12 +1,22 @@
+"""
+Test the /translate endpoint to ensure Romanian text is correctly translated to English using
+the OpenAI API.
+
+This test mocks the OpenAI chat completion API to return a fixed English translation ("Hello
+world!") for the input "Salut lume!".
+It verifies that:
+- The response status code is 200.
+- The translated text in the response matches the expected output.
+- The OpenAI API is called exactly once during the process.
+"""
 import os
 from datetime import datetime, timedelta, UTC
-
+from unittest.mock import patch
 import pytest
 from dotenv import load_dotenv
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from jose import jwt
-from unittest.mock import patch
 
 from api_server import app, create_access_token, verify_token, SECRET_KEY, ALGORITHM
 
@@ -19,6 +29,10 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def patch_dependencies():
+    """
+    Pytest fixture to patch external dependencies in api_server for isolated unit testing.
+    Returns a dictionary of mock objects for use in tests.
+    """
     with patch("api_server.search_books") as mock_search_books, \
          patch("api_server.get_summary_by_title") as mock_get_summary_by_title, \
          patch("api_server.generate_image_from_summary") as mock_generate_image_from_summary, \
@@ -34,6 +48,9 @@ def patch_dependencies():
 
 @patch("api_server.verify_token", return_value="testuser")
 def test_recommend_returns_book_with_summary_and_image_url(mock_verify_token, patch_dependencies):
+    """
+    Test /recommend endpoint returns a book with summary and image URL when available.
+    """
     # Setup mocks for a book with summary and image
     patch_dependencies["search_books"].return_value = {
         "ids": [["id1"]],
@@ -56,6 +73,9 @@ def test_recommend_returns_book_with_summary_and_image_url(mock_verify_token, pa
 
 @patch("api_server.verify_token", return_value="testuser")
 def test_recommend_generates_image_if_missing(mock_verify_token, patch_dependencies):
+    """
+    Test /recommend endpoint generates image if missing from metadata.
+    """
     # Setup mocks for a book with summary but no image
     patch_dependencies["search_books"].return_value = {
         "ids": [["id2"]],
@@ -80,6 +100,9 @@ def test_recommend_generates_image_if_missing(mock_verify_token, patch_dependenc
 
 @patch("api_server.verify_token", return_value="testuser")
 def test_recommend_skips_books_without_summary(mock_verify_token, patch_dependencies):
+    """
+    Test /recommend endpoint skips books without valid summary and returns the next suitable book.
+    """
     # Setup mocks for two books, only second has a valid summary
     patch_dependencies["search_books"].return_value = {
         "ids": [["id3", "id4"]],
@@ -102,6 +125,9 @@ def test_recommend_skips_books_without_summary(mock_verify_token, patch_dependen
 
 @patch("api_server.verify_token", return_value="testuser")
 def test_recommend_returns_error_if_no_suitable_book(mock_verify_token, patch_dependencies):
+    """
+    Test /recommend endpoint returns error if no suitable book is found.
+    """
     # Setup mocks for a book with no valid summary
     patch_dependencies["search_books"].return_value = {
         "ids": [["id5"]],
@@ -120,12 +146,18 @@ def test_recommend_returns_error_if_no_suitable_book(mock_verify_token, patch_de
 
 @patch("api_server.listen_with_whisper", return_value="hello world")
 def test_voice_returns_transcribed_text(mock_listen_with_whisper, patch_dependencies):
+    """
+    Test /voice endpoint returns transcribed text from Whisper.
+    """
     response = client.post("/voice", json={"language": "english"})
     assert response.status_code == 200
     data = response.json()
     assert data["text"] == "hello world"
 
 def test_voice_uses_correct_language_code(patch_dependencies):
+    """
+    Test /voice endpoint uses correct language code for transcription.
+    """
     patch_dependencies["listen_with_whisper"].return_value = "salut"
     response = client.post("/voice", json={"language": "romanian"})
     assert response.status_code == 200
@@ -134,6 +166,9 @@ def test_voice_uses_correct_language_code(patch_dependencies):
 
 # Test create_access_token returns a valid JWT with correct payload and expiry
 def test_create_access_token_valid():
+    """
+    Test create_access_token returns a valid JWT with correct payload and expiry.
+    """
     data = {"sub": "testuser"}
     expires = timedelta(minutes=5)
     token = create_access_token(data, expires)
@@ -148,6 +183,9 @@ def test_create_access_token_valid():
 
 # Test verify_token returns username for valid token
 def test_verify_token_valid():
+    """
+    Test verify_token returns username for valid token.
+    """
     data = {"sub": "testuser"}
     token = create_access_token(data)
     username = verify_token(token)
@@ -155,12 +193,18 @@ def test_verify_token_valid():
 
 # Test verify_token raises HTTPException for invalid token
 def test_verify_token_invalid():
+    """
+    Test verify_token raises HTTPException for invalid token.
+    """
     with pytest.raises(HTTPException) as excinfo:
         verify_token("invalid.token.value")
     assert excinfo.value.status_code == 401
 @patch("api_server.login_user")
 @patch("api_server.create_access_token", return_value="jwt.token.value")
 def test_login_success(mock_create_access_token, mock_login_user, patch_dependencies):
+    """
+    Test /login endpoint returns success and JWT for valid credentials.
+    """
     # Mock login_user to return a user dict
     mock_login_user.return_value = {
         "username": "alice",
@@ -180,6 +224,9 @@ def test_login_success(mock_create_access_token, mock_login_user, patch_dependen
 
 @patch("api_server.login_user")
 def test_login_invalid_credentials(mock_login_user, patch_dependencies):
+    """
+    Test /login endpoint returns 401 for invalid credentials.
+    """
     # Mock login_user to return None (invalid credentials)
     mock_login_user.return_value = None
     response = client.post("/login", json={"username": "bob", "password": "wrongpw"})
@@ -189,6 +236,9 @@ def test_login_invalid_credentials(mock_login_user, patch_dependencies):
     mock_login_user.assert_called_once()
 
 def test_login_missing_fields():
+    """
+    Test /login endpoint returns 422 or 400 for missing username or password fields.
+    """
     # Missing username or password should raise 422 Unprocessable Entity
     response = client.post("/login", json={"username": "alice"})
     assert response.status_code == 422 or response.status_code == 400
@@ -197,17 +247,26 @@ def test_login_missing_fields():
     assert response.status_code == 422 or response.status_code == 400
 
 def test_login_empty_body():
+    """
+    Test /login endpoint returns 422 or 400 for empty request body.
+    """
     # Empty body should raise 422 Unprocessable Entity
     response = client.post("/login", json={})
     assert response.status_code == 422 or response.status_code == 400
 
 def test_login_no_json():
+    """
+    Test /login endpoint returns 422 or 400 for missing JSON body.
+    """
     # No JSON body should raise 422 Unprocessable Entity
     response = client.post("/login")
     assert response.status_code == 422 or response.status_code == 400
 
 @patch("api_server.login_user")
 def test_login_user_exception(mock_login_user, patch_dependencies):
+    """
+    Test /login endpoint returns 401 if login_user raises an exception.
+    """
     # Simulate an exception in login_user
     mock_login_user.side_effect = Exception("DB error")
     response = client.post("/login", json={"username": "alice", "password": "Password123!"})
@@ -614,4 +673,3 @@ def test_search_titles_error_handling(mock_collection, patch_dependencies):
     data = response.json()
     assert data["titles"] == []
     assert "error" in data
-

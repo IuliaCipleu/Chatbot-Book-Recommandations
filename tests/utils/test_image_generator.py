@@ -35,6 +35,9 @@ def test_generate_image_empty_summary():
 def test_generate_image_no_data_in_response(monkeypatch):
     """Test that generate_image_from_summary returns None when OpenAI response contains no data."""
     class DummyResponse:
+        """
+        Dummy response class to simulate an OpenAI API response with no data for testing edge cases.
+        """
         data = []
     def fake_generate(*a, **k):
         return DummyResponse()

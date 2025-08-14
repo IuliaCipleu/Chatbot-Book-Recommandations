@@ -18,15 +18,13 @@ Integrations:
 Recommended to run after preprocessing with split_txt_to_json_batches.py
 """
 
-import os
-import sys
+import argparse
 import glob
 import json
-import argparse
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils.openai_config import load_openai_key
-import openai
+import os
 import chromadb
+import openai
+from utils.openai_config import load_openai_key
 
 # Folder containing JSON batches
 BATCHES_DIR = "data/batches"
