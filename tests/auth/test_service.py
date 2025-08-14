@@ -1,3 +1,12 @@
+"""
+Unit tests for auth.service functions.
+Covers:
+- User insertion, update, deletion, and retrieval
+- Password hashing and verification
+- Read book addition and retrieval
+- Database error handling and edge cases
+- Use of MagicMock and patching for database and password functions
+"""
 from unittest.mock import patch, MagicMock
 from auth.service import (
     insert_user,
@@ -11,6 +20,7 @@ from auth.service import (
 @patch("auth.service.oracledb.connect")
 @patch("auth.service.hash_password")
 def test_insert_user_success(mock_hash_password, mock_connect):
+    """Test insert_user successfully inserts a user with voice enabled."""
     # Arrange
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
@@ -53,6 +63,7 @@ def test_insert_user_success(mock_hash_password, mock_connect):
 @patch("auth.service.oracledb.connect")
 @patch("auth.service.hash_password")
 def test_insert_user_voice_disabled(mock_hash_password, mock_connect):
+    """Test insert_user inserts a user with voice disabled."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_connect.return_value = mock_conn
@@ -82,6 +93,7 @@ def test_insert_user_voice_disabled(mock_hash_password, mock_connect):
 @patch("auth.service.oracledb.connect", side_effect=Exception("DB error"))
 @patch("auth.service.hash_password")
 def test_insert_user_db_exception(mock_hash_password, mock_connect, capsys):
+    """Test insert_user handles DB exception and prints error."""
     # Should print error and not raise
     insert_user(
         conn_string="bad/conn",
@@ -100,6 +112,7 @@ def test_insert_user_db_exception(mock_hash_password, mock_connect, capsys):
 
 @patch("auth.service.oracledb.connect")
 def test_get_user_success(mock_connect):
+    """Test get_user returns correct user data when found."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_connect.return_value = mock_conn
@@ -120,6 +133,7 @@ def test_get_user_success(mock_connect):
 
 @patch("auth.service.oracledb.connect")
 def test_get_user_not_found(mock_connect):
+    """Test get_user returns None when user is not found."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_connect.return_value = mock_conn
@@ -130,6 +144,7 @@ def test_get_user_not_found(mock_connect):
 
 @patch("auth.service.oracledb.connect")
 def test_update_user_success(mock_connect):
+    """Test update_user successfully updates user fields."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_connect.return_value = mock_conn
@@ -145,6 +160,7 @@ def test_update_user_success(mock_connect):
 
 @patch("auth.service.oracledb.connect")
 def test_update_user_no_fields(mock_connect, capsys):
+    """Test update_user prints message when no fields are provided."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_connect.return_value = mock_conn
@@ -155,6 +171,7 @@ def test_update_user_no_fields(mock_connect, capsys):
 
 @patch("auth.service.oracledb.connect")
 def test_delete_user_success(mock_connect):
+    """Test delete_user successfully deletes a user."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_connect.return_value = mock_conn
@@ -170,6 +187,7 @@ def test_delete_user_success(mock_connect):
 @patch("auth.service.oracledb.connect")
 @patch("auth.service.verify_password")
 def test_login_user_success(mock_verify_password, mock_connect, capsys):
+    """Test login_user returns user dict for valid credentials."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_connect.return_value = mock_conn
@@ -196,6 +214,7 @@ def test_login_user_success(mock_verify_password, mock_connect, capsys):
 @patch("auth.service.oracledb.connect")
 @patch("auth.service.verify_password")  # <-- patch here, not auth.encrypt.verify_password
 def test_login_user_invalid_password(mock_verify_password, mock_connect, capsys):
+    """Test login_user returns None for invalid password."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_connect.return_value = mock_conn
@@ -211,6 +230,7 @@ def test_login_user_invalid_password(mock_verify_password, mock_connect, capsys)
 
 @patch("auth.service.oracledb.connect")
 def test_login_user_not_found(mock_connect, capsys):
+    """Test login_user returns None when user is not found."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_connect.return_value = mock_conn
@@ -224,6 +244,7 @@ def test_login_user_not_found(mock_connect, capsys):
 
 @patch("auth.service.oracledb.connect")
 def test_add_read_book_success(mock_connect):
+    """Test add_read_book successfully adds or updates a read book for a user."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_connect.return_value = mock_conn
@@ -255,6 +276,7 @@ def test_add_read_book_success(mock_connect):
 
 @patch("auth.service.oracledb.connect")
 def test_add_read_book_user_not_found(mock_connect):
+    """Test add_read_book raises exception when user is not found."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_connect.return_value = mock_conn
@@ -276,6 +298,7 @@ def test_add_read_book_user_not_found(mock_connect):
 
 @patch("auth.service.oracledb.connect")
 def test_add_read_book_book_not_found(mock_connect):
+    """Test add_read_book raises exception when book is not found."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_connect.return_value = mock_conn
@@ -298,6 +321,7 @@ def test_add_read_book_book_not_found(mock_connect):
 
 @patch("auth.service.oracledb.connect", side_effect=Exception("DB error"))
 def test_add_read_book_db_error(mock_connect, capsys):
+    """Test add_read_book raises exception and prints error for DB error."""
     try:
         add_read_book("dsn", "user", "pw", "alice", "Book Title")
     except Exception as e:
@@ -310,6 +334,7 @@ def test_add_read_book_db_error(mock_connect, capsys):
 
 @patch("auth.service.oracledb.connect")
 def test_get_user_read_books_success(mock_connect):
+    """Test get_user_read_books returns correct list of books for user."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_connect.return_value = mock_conn
@@ -337,6 +362,7 @@ def test_get_user_read_books_success(mock_connect):
 
 @patch("auth.service.oracledb.connect")
 def test_get_user_read_books_user_not_found(mock_connect):
+    """Test get_user_read_books returns empty list when user is not found."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_connect.return_value = mock_conn
@@ -352,6 +378,7 @@ def test_get_user_read_books_user_not_found(mock_connect):
 
 @patch("auth.service.oracledb.connect")
 def test_get_user_read_books_no_books(mock_connect):
+    """Test get_user_read_books returns empty list when no books are found."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_connect.return_value = mock_conn
@@ -371,6 +398,7 @@ def test_get_user_read_books_no_books(mock_connect):
 
 @patch("auth.service.oracledb.connect", side_effect=Exception("DB error"))
 def test_get_user_read_books_db_error(mock_connect, capsys):
+    """Test get_user_read_books returns empty list and prints error for DB error."""
     books = get_user_read_books("dsn", "user", "pw", "alice")
     assert books == []
     captured = capsys.readouterr()
@@ -378,6 +406,7 @@ def test_get_user_read_books_db_error(mock_connect, capsys):
 
 @patch("auth.service.oracledb.connect")
 def test_get_user_read_books_exception_in_fetchall(mock_connect, capsys):
+    """Test get_user_read_books returns empty list and prints error if fetchall fails."""
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_connect.return_value = mock_conn

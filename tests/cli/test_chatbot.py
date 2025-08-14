@@ -1,3 +1,13 @@
+"""
+Unit tests for cli.chatbot.
+Covers:
+- Translation logic for English and Romanian
+- Reader profile inference
+- Appropriateness filtering for child/adult profiles
+- Main chatbot flow with text and voice input, summary/image generation, and output
+- Mocking OpenAI API responses and user input
+- Dummy response classes for OpenAI completions
+"""
 from unittest.mock import MagicMock
 import builtins
 import pytest
@@ -6,6 +16,7 @@ import cli.chatbot as chatbot
 
 @pytest.fixture(autouse=True)
 def patch_openai(monkeypatch):
+    """Pytest fixture to patch OpenAI chat completion API for all tests."""
     # Patch openai.chat.completions.create to return a mock response
     mock_response = MagicMock()
     mock_response.choices = [MagicMock(message=MagicMock(content="adult"))]
@@ -13,13 +24,16 @@ def patch_openai(monkeypatch):
     yield
 
 def test_translate_english_returns_original():
+    """Test that translate returns the original text for English language."""
     assert chatbot.translate("Hello", "english") == "Hello"
 
 def test_translate_romanian_calls_openai(monkeypatch):
+    """Test that translate calls OpenAI and returns Romanian translation."""
     called = {}
     def fake_create(**kwargs):
         called["prompt"] = kwargs["messages"][0]["content"]
         class Resp:
+            """Mock response object for OpenAI chat completion, simulates choices structure."""
             choices = [type("C", (), {"message": type("M", (), {"content": "Salut"})()})()]
         return Resp()
     monkeypatch.setattr("openai.chat.completions.create", fake_create)
@@ -28,21 +42,26 @@ def test_translate_romanian_calls_openai(monkeypatch):
     assert "Translate the following text to Romanian" in called["prompt"]
 
 def test_infer_reader_profile_returns_lower(monkeypatch):
+    """Test that infer_reader_profile returns profile in lowercase."""
     def fake_create(**kwargs):
         class Resp:
+            """Mock response object for OpenAI chat completion, simulates choices structure."""
             choices = [type("C", (), {"message": type("M", (), {"content": "Teen"})()})()]
         return Resp()
     monkeypatch.setattr("openai.chat.completions.create", fake_create)
     assert chatbot.infer_reader_profile("A book for teens") == "teen"
 
 def test_is_appropriate_blocks_banned():
+    """Test is_appropriate blocks banned content for child profile."""
     assert not chatbot.is_appropriate("This book contains violence and abuse.", "child")
     assert chatbot.is_appropriate("A technical manual.", "child")
 
 def test_is_appropriate_no_banned_for_adult():
+    """Test is_appropriate allows banned content for adult profile."""
     assert chatbot.is_appropriate("This book contains violence and sex.", "adult")
 
 def test_main_flow_text(monkeypatch):
+    """Test main flow with text input, simulating user and OpenAI interactions."""
     # Patch all I/O and OpenAI calls for a full flow
     inputs = iter([
         "english",  # language
@@ -77,6 +96,7 @@ def test_main_flow_text(monkeypatch):
     assert any("Generated Image: http://img.com/cover.png" in line for line in printed)
 
 def test_main_flow_voice(monkeypatch):
+    """Test main flow with voice input, simulating user and OpenAI interactions."""
     # Patch all I/O and OpenAI calls for a full flow with voice
     inputs = iter([
         "english",  # language
@@ -109,6 +129,7 @@ def test_main_flow_voice(monkeypatch):
     assert any("Generated Image: http://img.com/science.png" in line for line in printed)
 
 def test_main_flow_no_summary(monkeypatch):
+    """Test main flow when no summary is found for the recommended book."""
     # Patch all I/O and OpenAI calls for a flow with no summary found
     inputs = iter([
         "english",  # language
@@ -135,6 +156,7 @@ def test_main_flow_no_summary(monkeypatch):
     assert any("No book with summary found." in line for line in printed)
 
 def test_main_flow_romanian(monkeypatch):
+    """Test main flow in Romanian language, simulating user and OpenAI interactions."""
     # Patch all I/O and OpenAI calls for a full flow in Romanian
     inputs = iter([
         "romanian",  # language

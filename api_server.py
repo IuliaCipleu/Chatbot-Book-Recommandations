@@ -64,8 +64,8 @@ from auth.service import (
 )
 
 load_dotenv()
-DB_CONN_STRING = os.environ.get("DB_CONN_STRING", "localhost/freepdb1")
-DB_USER = os.environ.get("DB_USER", "SYSTEM")
+DB_CONN_STRING = os.environ.get("DB_CONN_STRING")
+DB_USER = os.environ.get("DB_USER")
 DB_PASSWORD = os.environ.get("DB_PASSWORD", "new_password")
 SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "supersecretkey")
 ALGORITHM = "HS256"
@@ -84,12 +84,29 @@ collection = client.get_or_create_collection("books")
 load_openai_key()
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
+    """
+    Create a JWT access token for authentication.
+    Args:
+        data (dict): The payload to encode in the token.
+        expires_delta (timedelta, optional): Expiry duration for the token.
+    Returns:
+        str: Encoded JWT token string.
+    """
     to_encode = data.copy()
     expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def verify_token(token: str):
+    """
+    Verify a JWT token and return the username (sub) if valid.
+    Args:
+        token (str): JWT token string.
+    Returns:
+        str: Username from the token payload.
+    Raises:
+        HTTPException: If token is invalid or missing username.
+    """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
@@ -101,6 +118,10 @@ def verify_token(token: str):
 
 @app.post("/login")
 async def login(request: Request):
+    """
+    Authenticate a user and return JWT token and user info.
+    Expects JSON body with 'username' and 'password'.
+    """
     try:
         data = await request.json()
     except Exception:
@@ -131,6 +152,10 @@ async def recommend(
     request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
+    """
+    Recommend a book based on user query, profile, and reading history.
+    Returns book title, summary, and image URL or error if none found.
+    """
     data = await request.json()
     query = data.get("query")
     role = data.get("role")
@@ -215,7 +240,12 @@ async def recommend(
     return {"error": "No suitable book found."}
 
 @app.post("/add_read_book")
-async def add_read_book_api(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def add_read_book_api(request: Request, credentials: HTTPAuthorizationCredentials
+                            = Depends(security)):
+    """
+    Add a book to the user's read list with optional rating.
+    Expects JSON body with 'book_title' and optional 'rating'.
+    """
     token = credentials.credentials
     username = verify_token(token)
     data = await request.json()
@@ -234,6 +264,9 @@ async def add_read_book_api(request: Request, credentials: HTTPAuthorizationCred
 
 @app.get("/user_read_books")
 async def user_read_books_api(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """
+    Get the list of books read by the authenticated user.
+    """
     token = credentials.credentials
     username = verify_token(token)
     try:
@@ -249,6 +282,10 @@ async def user_read_books_api(credentials: HTTPAuthorizationCredentials = Depend
 
 @app.post("/voice")
 async def voice(request: Request):
+    """
+    Transcribe voice input using Whisper and return the text.
+    Expects JSON body with 'language'.
+    """
     data = await request.json()
     language = data.get("language", "english")
     lang_code = "ro" if language == "romanian" else "en"
@@ -257,6 +294,10 @@ async def voice(request: Request):
 
 @app.post("/translate")
 async def translate(request: Request):
+    """
+    Translate text between English and Romanian using OpenAI.
+    Expects JSON body with 'text' and 'target_lang'.
+    """
     data = await request.json()
     text = data.get("text")
     target_lang = data.get("target_lang", "romanian")
@@ -285,7 +326,12 @@ async def translate(request: Request):
         return JSONResponse({"translated": text, "error": str(e)})
 
 @app.post("/update_user")
-async def update_user_api(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def update_user_api(request: Request, credentials: HTTPAuthorizationCredentials
+                          = Depends(security)):
+    """
+    Update user profile information for the authenticated user.
+    Expects JSON body with updatable fields.
+    """
     token = credentials.credentials
     username = verify_token(token)
     data = await request.json()
@@ -309,6 +355,10 @@ async def update_user_api(request: Request, credentials: HTTPAuthorizationCreden
 @app.post("/delete_user")
 async def delete_user_api(request: Request,
                           credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """
+    Delete the authenticated user's account.
+    Only allows user to delete their own account.
+    """
     token = credentials.credentials
     username = verify_token(token)
     data = await request.json()
@@ -331,6 +381,10 @@ async def delete_user_api(request: Request,
 
 @app.post("/register")
 async def register(request: Request):
+    """
+    Register a new user with provided credentials and profile info.
+    Expects JSON body with required fields.
+    """
     data = await request.json()
     try:
         insert_user(
@@ -350,6 +404,10 @@ async def register(request: Request):
 
 @app.get("/search_titles")
 async def search_titles(q: str = "", limit: int = 15, offset: int = 0):
+    """
+    Search book titles with optional query, pagination, and sorting.
+    Returns paged list of matching titles and metadata.
+    """
     try:
         all_titles = []
         for doc in collection.get(include=["metadatas"])['metadatas']:

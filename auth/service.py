@@ -1,5 +1,13 @@
+"""
+Service functions for user authentication, management, and book tracking.
+Covers:
+- User insertion, update, deletion, and retrieval
+- Password hashing and verification
+- Read book addition and retrieval
+- Database error handling and edge cases
+"""
 import oracledb
-from auth.encrypt import hash_password  # make sure this uses bcrypt
+from auth.encrypt import hash_password
 from auth.encrypt import verify_password
 
 def add_read_book(conn_string, db_user, db_password, username, book_title, rating=None):
