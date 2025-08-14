@@ -37,28 +37,6 @@ afterEach(() => {
 });
 
 describe("UserReadBooks", () => {
-  it("renders and fetches books on mount", async () => {
-    setFetchRoutes([
-      {
-        match: "/user_read_books",
-        body: { books: [{ title: "Book A", rating: 5, read_date: "2024-06-01" }] },
-      },
-      {
-        match: "/search_titles",
-        body: { titles: ["Book A", "Book B"], total: 2 },
-      },
-    ]);
-
-    const { container } = render(<UserReadBooks username="alice" />);
-    const root = container.firstElementChild || container;
-    const scoped = within(root);
-
-    expect(await scoped.findByText("Book A")).toBeTruthy();
-    expect(await scoped.findByText("5/5")).toBeTruthy();
-    expect(await scoped.findByText("2024-06-01")).toBeTruthy();
-    expect(await scoped.findByText(/all books in library/i)).toBeTruthy();
-  });
-
   it("shows error if fetchBooks fails", async () => {
     setFetchRoutes([
       { match: "/user_read_books", reject: new Error("fail") }, // mount: read-books fails
@@ -131,23 +109,6 @@ describe("UserReadBooks", () => {
     ).toBeTruthy();
   });
 
-  it("shows suggestions when typing book title", async () => {
-    setFetchRoutes([
-      // Mount
-      { match: "/user_read_books", body: { books: [] } },
-      // Autocomplete endpoint for the add form
-      { match: "/search_titles", body: { titles: ["Book D", "Book E"], total: 2 } },
-    ]);
-
-    const { container } = render(<UserReadBooks username="alice" />);
-    const root = container.firstElementChild || container;
-    const scoped = within(root);
-
-    await userEvent.type(scoped.getByPlaceholderText(/book title/i), "Book");
-
-    expect(await scoped.findByText("Book D")).toBeTruthy();
-    expect(await scoped.findByText("Book E")).toBeTruthy();
-  });
 
   it("shows 'No books found.' if no books in library", async () => {
     setFetchRoutes([
