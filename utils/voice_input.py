@@ -43,6 +43,7 @@ def listen_with_whisper(duration=5, sample_rate=16000, language="en"):
         print(f"[DEBUG] File exists before transcription: {os.path.exists(temp_path)}")
         if not os.path.exists(temp_path):
             print(f"Temp file does not exist: {temp_path}, creating empty WAV file.")
+            # Note: Pylint signals this as an error, but it works anyway
             with wave.open(temp_path, 'wb') as wf_write:
                 wf_write.setnchannels(1)
                 wf_write.setsampwidth(2)
