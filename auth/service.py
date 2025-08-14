@@ -36,8 +36,10 @@ def add_read_book(conn_string, db_user, db_password, username, book_title, ratin
         print(f"Failed to add read book: {e}")
         raise
     finally:
-        if 'cur' in locals(): cur.close()
-        if 'conn' in locals(): conn.close()
+        if 'cur' in locals():
+            cur.close()
+        if 'conn' in locals():
+            conn.close()
 
 def get_user_read_books(conn_string, db_user, db_password, username):
     """Get all books read by the user with ratings."""
@@ -65,8 +67,10 @@ def get_user_read_books(conn_string, db_user, db_password, username):
         print(f"Failed to get user read books: {e}")
         return []
     finally:
-        if 'cur' in locals(): cur.close()
-        if 'conn' in locals(): conn.close()
+        if 'cur' in locals():
+            cur.close()
+        if 'conn' in locals():
+            conn.close()
 
 
 def insert_user(
@@ -142,8 +146,10 @@ def get_user(conn_string, db_user, db_password, username):
         print(f"Failed to get user: {e}")
         return None
     finally:
-        if 'cur' in locals(): cur.close()
-        if 'conn' in locals(): conn.close()
+        if 'cur' in locals():
+            cur.close()
+        if 'conn' in locals():
+            conn.close()
 
 def update_user(conn_string, db_user, db_password, username, **kwargs):
     """Update user fields. kwargs can include email, language, profile,
@@ -179,8 +185,10 @@ def update_user(conn_string, db_user, db_password, username, **kwargs):
     except Exception as e:
         print(f"Failed to update user: {e}")
     finally:
-        if 'cur' in locals(): cur.close()
-        if 'conn' in locals(): conn.close()
+        if 'cur' in locals():
+            cur.close()
+        if 'conn' in locals():
+            conn.close()
 
 def delete_user(conn_string, db_user, db_password, username):
     """Delete a user by username."""
@@ -193,8 +201,10 @@ def delete_user(conn_string, db_user, db_password, username):
     except Exception as e:
         print(f"Failed to delete user: {e}")
     finally:
-        if 'cur' in locals(): cur.close()
-        if 'conn' in locals(): conn.close()
+        if 'cur' in locals():
+            cur.close()
+        if 'conn' in locals():
+            conn.close()
 
 def login_user(conn_string, db_user, db_password, username, plain_password):
     """Authenticate user by username and password. Returns user dict if valid, else None."""
@@ -226,5 +236,7 @@ def login_user(conn_string, db_user, db_password, username, plain_password):
         print(f"Login failed: {e}")
         return None
     finally:
-        if 'cur' in locals(): cur.close()
-        if 'conn' in locals(): conn.close()
+        if 'cur' in locals():
+            cur.close()
+        if 'conn' in locals():
+            conn.close()

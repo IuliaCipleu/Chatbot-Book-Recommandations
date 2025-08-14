@@ -240,7 +240,9 @@ def test_add_read_book_success(mock_connect):
     # Check user_id query
     mock_cursor.execute.assert_any_call("SELECT user_id FROM users WHERE username = :1", ("alice",))
     # Check book_id query
-    mock_cursor.execute.assert_any_call("SELECT book_id FROM books WHERE title = :1", ("Book Title",))
+    mock_cursor.execute.assert_any_call(
+        "SELECT book_id FROM books WHERE title = :1", ("Book Title",)
+        )
     # Check MERGE statement
     merge_args = mock_cursor.execute.call_args_list[-1][0]
     assert "MERGE INTO user_read_books ur" in merge_args[0]

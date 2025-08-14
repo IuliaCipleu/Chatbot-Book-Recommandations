@@ -23,10 +23,10 @@ import sys
 import glob
 import json
 import argparse
-import openai
-import chromadb
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.openai_config import load_openai_key
+import openai
+import chromadb
 
 # Folder containing JSON batches
 BATCHES_DIR = "data/batches"

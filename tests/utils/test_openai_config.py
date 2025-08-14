@@ -1,6 +1,13 @@
+"""
+Unit tests for the `load_openai_key` function in `utils.openai_config`.
+Tests:
+- Setting the OpenAI API key from the environment variable.
+- Stripping leading/trailing whitespace from the API key.
+- Raising a ValueError when the environment variable is missing.
+"""
 import os
-import pytest
 from unittest import mock
+import pytest
 from utils.openai_config import load_openai_key
 
 def test_load_openai_key_sets_api_key(monkeypatch):

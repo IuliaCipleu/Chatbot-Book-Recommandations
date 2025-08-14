@@ -1,8 +1,8 @@
 from unittest.mock import patch, MagicMock
-import embeddings.embedding_storing as es
 import json
 import openai
 import pytest
+import embeddings.embedding_storing as es
 
 def test_init_chroma():
     mock_client = MagicMock()

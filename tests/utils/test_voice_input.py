@@ -1,6 +1,22 @@
+"""
+Unit tests for the `listen_with_whisper` function in the `utils.voice_input` module.
+These tests cover the following scenarios:
+- Successful transcription using Whisper with proper cleanup of temporary audio files.
+- Handling exceptions during cleanup (file removal).
+- Using monkeypatching to simulate dependencies and file operations.
+- Ensuring correct behavior when Whisper returns no transcription text.
+- Handling exceptions during the transcription process.
+- Handling exceptions during file removal after transcription.
+Fixtures and mocking are used to isolate the function from external dependencies such as audio recording, file I/O, and Whisper model loading.
+Tested functions:
+- `listen_with_whisper(duration)`: Records audio, saves it to a temporary file, transcribes it using Whisper, and cleans up the temporary file.
+Test utilities:
+- `mock_audio`: Simulates silent audio input for testing.
+"""
+
 from unittest import mock
-import numpy as np
 import wave
+import numpy as np
 import pytest
 
 import utils.voice_input as voice_input

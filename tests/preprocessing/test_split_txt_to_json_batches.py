@@ -1,3 +1,21 @@
+"""
+Unit tests for the split_txt_to_json_batches function in preprocessing.split_txt_to_json_batches.
+These tests cover:
+- Correct creation of batch files by genre, with expected file naming and content.
+- Skipping of incomplete or empty lines in the input text file.
+- Handling of exact batch sizes and output directory creation.
+- Behavior with empty input files.
+Helper functions:
+- make_sample_txt: Creates a temporary text file with provided lines.
+- read_json: Reads and parses a JSON file.
+Test functions:
+- test_split_creates_correct_number_of_batches: Verifies correct number of genre batch files and their contents.
+- test_split_skips_incomplete_and_empty_lines: Ensures only valid lines are processed and incomplete/empty lines are skipped.
+- test_split_handles_exact_batch: Checks correct handling when batch size matches number of books.
+- test_split_creates_output_dir: Confirms output directory is created if it does not exist.
+- test_split_empty_input_file: Validates behavior when input file is empty.
+"""
+
 import os
 import json
 import tempfile
