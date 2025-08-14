@@ -43,6 +43,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import status
+from authlib.integrations.starlette_client import OAuth
 from jose import JWTError, jwt
 from search.retriever import search_books
 from search.summary_tool import get_summary_by_title
@@ -90,6 +91,24 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+oauth = OAuth()
+oauth.register(
+    name='google',
+    client_id=os.getenv("GOOGLE_CLIENT_ID"),
+    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'}
+)
+oauth_fb = OAuth()
+oauth_fb.register(
+    name='facebook',
+    client_id=os.getenv("FACEBOOK_CLIENT_ID"),
+    client_secret=os.getenv("FACEBOOK_CLIENT_SECRET"),
+    access_token_url='https://graph.facebook.com/v19.0/oauth/access_token',
+    authorize_url='https://www.facebook.com/v19.0/dialog/oauth',
+    api_base_url='https://graph.facebook.com/v19.0/',
+    client_kwargs={'scope': 'email public_profile'}
 )
 client = chromadb.PersistentClient(path="./chroma_db")
 collection = client.get_or_create_collection("books")
@@ -158,6 +177,31 @@ async def login(request: Request):
         return {"success": True, "user": user, "access_token": access_token}
     else:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+@app.get('/auth/google/login')
+async def google_login(request: Request):
+    redirect_uri = request.url_for('google_auth')
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+@app.get('/auth/google/auth')
+async def google_auth(request: Request):
+    token = await oauth.google.authorize_access_token(request)
+    user = await oauth.google.parse_id_token(request, token)
+    # Here, create or update user in your DB and issue JWT
+    return {"user": user}
+
+@app.get('/auth/facebook/login')
+async def facebook_login(request: Request):
+    redirect_uri = request.url_for('facebook_auth')
+    return await oauth.facebook.authorize_redirect(request, redirect_uri)
+
+@app.get('/auth/facebook/auth')
+async def facebook_auth(request: Request):
+    token = await oauth_fb.facebook.authorize_access_token(request)
+    resp = await oauth_fb.facebook.get('me?fields=id,name,email', token=token)
+    user = resp.json()
+    # Here, create or update user in your DB and issue JWT
+    return {"user": user}
 
 @app.post("/recommend")
 async def recommend(
