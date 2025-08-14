@@ -8,7 +8,16 @@ function ChatPage({ onLogout }) {
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState("");
-  const [language, setLanguage] = useState("english");
+  // Get preferred language from user profile in localStorage, fallback to 'english'
+  const user = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("user"));
+    } catch {
+      return null;
+    }
+  })();
+  const preferredLanguage = user && user.language ? user.language.toLowerCase() : "english";
+  const [language, setLanguage] = useState(preferredLanguage);
   const [listening, setListening] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 

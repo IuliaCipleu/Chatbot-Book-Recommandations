@@ -51,9 +51,9 @@ def listen_with_whisper(duration=5, sample_rate=16000, language="en"):
         # Double-check file is closed and accessible
         try:
             with wave.open(temp_path, 'rb') as wf_read:
-                channels = wf_read.getnchannels()  
+                _ = wf_read.getnchannels()
                 # Just check if file can be opened and read channels
-                framerate = wf_read.getframerate()  # Check if framerate can be read
+                _ = wf_read.getframerate()  # Check if framerate can be read
                 # No need to call setsampwidth on wf_read (Wave_read object)
         except wave.Error as file_err:
             print(f"[DEBUG] Could not open file before transcription: {file_err}")
