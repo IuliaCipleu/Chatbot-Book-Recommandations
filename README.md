@@ -42,9 +42,6 @@ Uses the [CMU Book Summary Dataset](https://www.kaggle.com/datasets/ymaricar/cmu
    ```
 2. Set your OpenAI API key:
    ```sh
-   # Linux/macOS
-   export OPENAI_API_KEY=your-key-here
-   # Windows
    set OPENAI_API_KEY=your-key-here
    ```
 3. (Optional) Prepare embeddings:
@@ -64,8 +61,31 @@ Uses the [CMU Book Summary Dataset](https://www.kaggle.com/datasets/ymaricar/cmu
    pytest
    ```
 
+## Authentication (JWT)
+
+This project uses JSON Web Tokens (JWT) for user authentication and authorization. After logging in or registering, you will receive a JWT token. This token must be included in the `Authorization` header as a Bearer token for all protected API requests.
+
+**Frontend:**
+- The React app automatically stores and sends the JWT token for authenticated requests.
+- User profile and language preferences are linked to the authenticated user.
+
+**Backend:**
+- FastAPI endpoints validate the JWT token and return 401 errors for invalid or missing tokens.
+
+**Testing:**
+- Tests include JWT authentication for protected endpoints.
+
 ### Frontend (React)
 1. Enter the frontend directory:
+## Audio File Support
+
+To enable audio features (such as voice messages or audio file processing), you need to install [FFmpeg](https://ffmpeg.org/).
+
+### How to Install FFmpeg
+
+- **Windows:** Download the FFmpeg executable from [ffmpeg.org/download.html](https://ffmpeg.org/download.html), extract it, and add the `bin` folder to your system PATH.
+
+After installation, verify by running `ffmpeg -version` in your terminal.
    ```sh
    cd frontend
    ```
