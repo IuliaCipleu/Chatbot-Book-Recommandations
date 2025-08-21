@@ -210,7 +210,8 @@ def _extract_subject(text: str) -> str:
 def is_book_related(user_input: str) -> Tuple[bool, str]:
     """
     Returns (is_related, message). If not related, message says:
-    "I am only specialized in books, not in subjects like 'X'. But if you want I can provide a book related to 'X'."
+    "I am only specialized in books, not in subjects like 'X'.
+    But if you want I can provide a book related to 'X'."
     """
     text = user_input or ""
     if _looks_book_related(text.lower()):

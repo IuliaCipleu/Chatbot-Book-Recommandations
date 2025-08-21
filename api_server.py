@@ -81,7 +81,13 @@ for var, val in [
     if not val:
         missing_env.append(var)
 if missing_env:
-    raise RuntimeError(f"Missing required environment variables: {', '.join(missing_env)}. Please set them in your .env file.")
+    raise RuntimeError(
+        (
+            "Missing required environment variables: "
+            f"{', '.join(missing_env)}. "
+            "Please set them in your .env file."
+        )
+    )
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 security = HTTPBearer()
@@ -200,9 +206,8 @@ async def google_auth(request: Request):
     """
     Handles Google OAuth authentication.
 
-    This endpoint initiates the Google OAuth flow, exchanges the authorization code for an access token,
-    parses the user's ID token, and returns user information. Typically, you would create or update the user
-    in your database and issue a JWT token for authenticated sessions.
+    This endpoint initiates the Google OAuth flow, exchanges the authorization
+    code for an access token, parses the user's ID token, and returns user information.
 
     Args:
         request (Request): The incoming HTTP request containing OAuth credentials.
@@ -239,9 +244,10 @@ async def facebook_auth(request: Request):
     """
     Handles Facebook OAuth authentication.
 
-    This endpoint initiates the Facebook OAuth flow, exchanges the authorization code for an access token,
-    retrieves the user's profile information (id, name, email) from Facebook, and returns the user data.
-    Typically, you would create or update the user in your database and issue a JWT token here.
+    This endpoint initiates the Facebook OAuth flow, exchanges the authorization code
+    for an access token, retrieves the user's profile information (id, name, email)
+    from Facebook, and returns the user data. Typically, you would create or update
+    the user in your database and issue a JWT token here.
 
     Args:
         request (Request): The incoming HTTP request containing OAuth credentials.
