@@ -5,6 +5,7 @@ of bad words.
 import json
 import string
 import re
+from typing import Tuple
 import openai
 from search.summary_tool import get_summary_by_title
 
@@ -17,6 +18,32 @@ EXCLUSION_KEYWORDS = {
     "technical": {"fairy tale", "fantasy", "magic"},
     "adult": set(),
 }
+
+BOOK_PATTERNS = [
+    r"\bbook(s)?\b",
+    r"\bnovel(s)?\b",
+    r"\bstory(?:|ies)\b",
+    r"\bauthor(s)?\b",
+    r"\bgenre(s)?\b",
+    r"\bread(ing)?\b",
+    r"\brecommend(ed|ation|ations)?\b",
+    r"\bliterature\b",
+    r"\btale(s)?\b",
+    r"\bseries\b",
+    r"\blibrary\b",
+    r"\bchapter(s)?\b",
+    r"\bplot\b",
+    r"\bsummary\b",
+]
+
+# Simple subject extractors: grabs text after common “about/on/regarding …” patterns,
+# otherwise uses the input (trimmed).
+SUBJECT_REGEXES = [
+    re.compile(r".*?\babout\b\s+(?P<subj>.+)", re.IGNORECASE | re.DOTALL),
+    re.compile(r".*?\bon\b\s+(?P<subj>.+)", re.IGNORECASE | re.DOTALL),
+    re.compile(r".*?\bregarding\b\s+(?P<subj>.+)", re.IGNORECASE | re.DOTALL),
+    re.compile(r".*?\brelated to\b\s+(?P<subj>.+)", re.IGNORECASE | re.DOTALL),
+]
 
 def is_appropriate(summary, profile):
     """
@@ -164,3 +191,34 @@ def is_similar_to_high_rated(meta, high_rated_books):
                 if len(overlap) >= 5 or (len(cand_kw) > 0 and len(overlap) / len(cand_kw) > 0.2):
                     return True
     return False
+
+def _looks_book_related(text: str) -> bool:
+    return any(re.search(p, text) for p in BOOK_PATTERNS)
+
+def _extract_subject(text: str) -> str:
+    cleaned = text.strip()
+    for rx in SUBJECT_REGEXES:
+        m = rx.match(cleaned)
+        if m:
+            subj = m.group("subj").strip(" .!?\"'“”‘’")
+            if subj:
+                return subj
+    # Fallback: compress whitespace and trim length
+    subj = re.sub(r"\s+", " ", cleaned)
+    return (subj[:120] + "…") if len(subj) > 120 else subj
+
+def is_book_related(user_input: str) -> Tuple[bool, str]:
+    """
+    Returns (is_related, message). If not related, message says:
+    "I am only specialized in books, not in subjects like 'X'. But if you want I can provide a book related to 'X'."
+    """
+    text = user_input or ""
+    if _looks_book_related(text.lower()):
+        return True, ""
+
+    subject = _extract_subject(text)
+    msg = (
+        f"I am only specialized in books, not in subjects like '{subject}'. "
+        f"But if you want I can provide a book related to '{subject}'."
+    )
+    return False, msg

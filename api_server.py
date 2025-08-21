@@ -54,6 +54,7 @@ from utils.filter import (
     is_appropriate,
     sanitize_for_image_prompt,
     is_similar_to_high_rated,
+    is_book_related,
 )
 from auth.service import (
     insert_user,
@@ -177,14 +178,39 @@ async def login(request: Request):
         return {"success": True, "user": user, "access_token": access_token}
     else:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    
+
 @app.get('/auth/google/login')
 async def google_login(request: Request):
+    """
+    Initiates the Google OAuth2 login flow.
+    Args:
+        request (Request): The incoming HTTP request object.
+    Returns:
+        Response: A redirect response to Google's OAuth2 authorization page.
+    Raises:
+        Any exceptions raised by the OAuth library during the authorization redirect process.
+    Note:
+        The redirect URI is dynamically generated using the 'google_auth' endpoint.
+    """
     redirect_uri = request.url_for('google_auth')
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @app.get('/auth/google/auth')
 async def google_auth(request: Request):
+    """
+    Handles Google OAuth authentication.
+
+    This endpoint initiates the Google OAuth flow, exchanges the authorization code for an access token,
+    parses the user's ID token, and returns user information. Typically, you would create or update the user
+    in your database and issue a JWT token for authenticated sessions.
+
+    Args:
+        request (Request): The incoming HTTP request containing OAuth credentials.
+
+    Returns:
+        dict: A dictionary containing the authenticated user's information.
+    """
+
     token = await oauth.google.authorize_access_token(request)
     user = await oauth.google.parse_id_token(request, token)
     # Here, create or update user in your DB and issue JWT
@@ -192,11 +218,37 @@ async def google_auth(request: Request):
 
 @app.get('/auth/facebook/login')
 async def facebook_login(request: Request):
+    """
+    Initiates the Facebook OAuth login flow.
+    Args:
+        request (Request): The incoming HTTP request object.
+    Returns:
+        Response: A redirect response to Facebook's OAuth authorization page.
+    Raises:
+        Any exceptions raised by the OAuth library during the authorization redirect process.
+    Notes:
+        - The redirect URI is dynamically generated using the 'facebook_auth' route.
+        - This endpoint should be used to start the Facebook authentication process.
+    """
+    
     redirect_uri = request.url_for('facebook_auth')
     return await oauth.facebook.authorize_redirect(request, redirect_uri)
 
 @app.get('/auth/facebook/auth')
 async def facebook_auth(request: Request):
+    """
+    Handles Facebook OAuth authentication.
+
+    This endpoint initiates the Facebook OAuth flow, exchanges the authorization code for an access token,
+    retrieves the user's profile information (id, name, email) from Facebook, and returns the user data.
+    Typically, you would create or update the user in your database and issue a JWT token here.
+
+    Args:
+        request (Request): The incoming HTTP request containing OAuth credentials.
+
+    Returns:
+        dict: A dictionary containing the authenticated user's Facebook profile information.
+    """
     token = await oauth_fb.facebook.authorize_access_token(request)
     resp = await oauth_fb.facebook.get('me?fields=id,name,email', token=token)
     user = resp.json()
@@ -216,6 +268,11 @@ async def recommend(
     query = data.get("query")
     role = data.get("role")
     language = data.get("language", "english")
+
+    is_related, msg = is_book_related(query or "")
+    if not is_related:
+        return {"error": msg}
+
     read_titles = set()
     high_rated_books = []
     username = verify_token(credentials.credentials)
