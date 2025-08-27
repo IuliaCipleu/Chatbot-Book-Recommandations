@@ -12,6 +12,7 @@ from auth.encrypt import verify_password
 
 def add_read_book(conn_string, db_user, db_password, username, book_title, rating=None):
     """Add a book to the user's read list with optional rating. Creates book if not exists."""
+    print(f"Trying to add book: '{book_title}'")
     try:
         conn = oracledb.connect(user=db_user, password=db_password, dsn=conn_string)
         cur = conn.cursor()
@@ -22,7 +23,7 @@ def add_read_book(conn_string, db_user, db_password, username, book_title, ratin
             raise Exception("User not found")
         user_id = user_row[0]
         # Get or create book_id
-        cur.execute("SELECT book_id FROM books WHERE title = :1", (book_title,))
+        cur.execute("SELECT book_id FROM books WHERE LOWER(title) = LOWER(:1)", (book_title,))
         book_row = cur.fetchone()
         if book_row:
             book_id = book_row[0]

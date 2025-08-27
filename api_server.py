@@ -359,26 +359,36 @@ async def recommend(
     return {"error": "No suitable book found."}
 
 @app.post("/add_read_book")
-async def add_read_book_api(request: Request, credentials: HTTPAuthorizationCredentials
-                            = Depends(security)):
+async def add_read_book_api(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
     Add a book to the user's read list with optional rating.
     Expects JSON body with 'book_title' and optional 'rating'.
+    Checks book existence in ChromaDB before adding.
     """
     token = credentials.credentials
     username = verify_token(token)
     data = await request.json()
+    book_title = data["book_title"]
+
+    # Check existence in ChromaDB
+    all_titles = []
+    for doc in collection.get(include=["metadatas"])['metadatas']:
+        if doc and 'title' in doc:
+            all_titles.append(doc['title'])
+    if book_title not in all_titles:
+        raise HTTPException(status_code=400, detail="Book not found in ChromaDB.")
+
     try:
         add_read_book(
             conn_string=DB_CONN_STRING,
             db_user=DB_USER,
             db_password=DB_PASSWORD,
             username=username,
-            book_title=data["book_title"],
+            book_title=book_title,
             rating=data.get("rating")
         )
         return {"success": True}
-    except (KeyError, TypeError, ValueError) as e:
+    except Exception as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 @app.get("/user_read_books")

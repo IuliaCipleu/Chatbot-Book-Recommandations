@@ -64,10 +64,14 @@ export default function UserReadBooks({ username }) {
       return;
     }
     try {
+      const token = localStorage.getItem('jwtToken');
       const res = await fetch("http://localhost:8000/add_read_book", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, book_title: title, rating: Number(addRating) })
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({book_title: title, rating: Number(addRating) })
       });
       if (!res.ok) throw new Error((await res.json()).detail || "Failed to add book.");
       setSuccess("Book added!");
