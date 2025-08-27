@@ -1,8 +1,3 @@
-# Note
-Almost all functionalities were completed and tested before the API key stopped working. Everything was fully functional at that time; hopefully the small enhancements added later don’t cause errors. The last verified commit is 2e06eec16b4b485a0d2e012120a95314fdc0d08a.
-
----
-
 # Smart Librarian Chatbot
 
 An AI-powered book recommendation system using OpenAI, ChromaDB (RAG), and the CMU Book Summary Dataset. Features both a CLI and a modern React web frontend.
