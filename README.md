@@ -136,6 +136,8 @@ After installation, verify by running `ffmpeg -version` in your terminal.
   # On Windows, open the HTML coverage report in your default browser:
   start htmlcov\index.html
   ```
+  ![alt text](image-1.png)
+  ![alt text](image-2.png)
 - **Frontend:**
   ```sh
   cd frontend
