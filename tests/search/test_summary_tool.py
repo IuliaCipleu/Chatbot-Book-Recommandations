@@ -42,6 +42,48 @@ def test_summary_not_found(monkeypatch):
         result = get_summary_by_title("Book Z", batches_dir="unused")
         assert result == "Summary not found."
 
+def test_list_format_summary_found(monkeypatch):
+    # Test the list format: books is a list of dicts with 'title' and 'summary'
+    batch_files = ["batch1.json"]
+    monkeypatch.setattr("glob.glob", lambda pattern: batch_files)
+    books_list = [
+        {"title": "Book L", "summary": "Summary L"},
+        {"title": "Book M", "summary": "Summary M"}
+    ]
+    m = mock_open(read_data=json.dumps(books_list))
+    with patch("builtins.open", m):
+        result = get_summary_by_title("Book M", batches_dir="unused")
+        assert result == "Summary M"
+
+def test_list_format_summary_not_found(monkeypatch):
+    batch_files = ["batch1.json"]
+    monkeypatch.setattr("glob.glob", lambda pattern: batch_files)
+    books_list = [
+        {"title": "Book L", "summary": "Summary L"},
+        {"title": "Book M", "summary": "Summary M"}
+    ]
+    m = mock_open(read_data=json.dumps(books_list))
+    with patch("builtins.open", m):
+        result = get_summary_by_title("Book Z", batches_dir="unused")
+        assert result == "Summary not found."
+
+def test_list_format_missing_summary_key(monkeypatch):
+    batch_files = ["batch1.json"]
+    monkeypatch.setattr("glob.glob", lambda pattern: batch_files)
+    books_list = [
+        {"title": "Book N"},  # No summary key
+        {"title": "Book O", "summary": "Summary O"}
+    ]
+    m = mock_open(read_data=json.dumps(books_list))
+    with patch("builtins.open", m):
+        result = get_summary_by_title("Book N", batches_dir="unused")
+        assert result == "Summary not found."
+    summaries1 = {"Book X": "Summary X"}
+    m = mock_open(read_data=json.dumps(summaries1))
+    with patch("builtins.open", m):
+        result = get_summary_by_title("Book Z", batches_dir="unused")
+        assert result == "Summary not found."
+
 def test_no_batch_files_unused_dir(monkeypatch):
     monkeypatch.setattr("glob.glob", lambda pattern: [])
     result = get_summary_by_title("Any Book", batches_dir="unused")

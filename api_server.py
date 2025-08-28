@@ -368,7 +368,10 @@ async def add_read_book_api(request: Request, credentials: HTTPAuthorizationCred
     token = credentials.credentials
     username = verify_token(token)
     data = await request.json()
-    book_title = data["book_title"]
+    # book_title = data["book_title"]
+    book_title = data.get("book_title")
+    if not book_title:
+        raise HTTPException(status_code=400, detail="Missing 'book_title' in request body.")
 
     # Check existence in ChromaDB
     all_titles = []

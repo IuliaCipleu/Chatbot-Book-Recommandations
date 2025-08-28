@@ -132,6 +132,9 @@ After installation, verify by running `ffmpeg -version` in your terminal.
 - **Backend:**
   ```sh
   pytest
+  pytest --cov=. --cov-report=html
+  # On Windows, open the HTML coverage report in your default browser:
+  start htmlcov\index.html
   ```
 - **Frontend:**
   ```sh
