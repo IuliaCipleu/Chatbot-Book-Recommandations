@@ -5,6 +5,7 @@ Supports language selection, voice input, content filtering, and image generatio
 """
 import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import chromadb
 import openai
@@ -14,8 +15,6 @@ from utils.openai_config import load_openai_key
 from utils.image_generator import generate_image_from_summary
 from utils.voice_input import listen_with_whisper
 from utils.filter import is_appropriate, EXCLUSION_KEYWORDS, infer_reader_profile
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Initialize ChromaDB client
 client = chromadb.PersistentClient(path="./chroma_db")
