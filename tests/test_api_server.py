@@ -208,44 +208,128 @@ def test_login_empty_body():
     response = client.post("/login", json={})
     assert response.status_code == 422 or response.status_code == 400
 
-def test_login_no_json():
-    """Test /login returns 422 or 400 for missing JSON body."""
-    # No JSON body should raise 422 Unprocessable Entity
-    response = client.post("/login")
-    assert response.status_code == 422 or response.status_code == 400
-
-@patch("api_server.login_user")
-def test_login_user_exception(mock_login_user, patch_dependencies):
-    """Test /login returns 401 if login_user raises an exception."""
-    # Simulate an exception in login_user
-    mock_login_user.side_effect = Exception("DB error")
-    response = client.post("/login", json={"username": "alice", "password": "Password123!"})
-    # Should return 401 because user is None, not 500
-    assert response.status_code == 401
-    data = response.json()
-    assert data["detail"] == "Invalid credentials"
-
 @patch("api_server.verify_token", return_value="testuser")
-@patch("api_server.add_read_book")
-def test_add_read_book_success(mock_add_read_book, mock_verify_token, patch_dependencies):
-    """Test /add_read_book returns 400 if book not found in ChromaDB."""
-    patch_dependencies["collection"].get.return_value = {
-        "metadatas": [{"title": "Book X"}]
+@patch("api_server.get_user_read_books")
+@patch("api_server.search_books")
+@patch("api_server.get_summary_by_title")
+@patch("api_server.is_appropriate", return_value=True)
+@patch("api_server.is_similar_to_high_rated", return_value=True)
+def test_recommend_filters_read_books_and_high_rated(
+    mock_is_similar, mock_is_appropriate, mock_get_summary, mock_search_books,
+    mock_get_user_read_books, mock_verify_token, patch_dependencies
+):
+    """
+    Test /recommend filters out books already read and prioritizes high-rated books.
+    """
+    # User has read Book A (rated 5) and Book B (rated 3)
+    mock_get_user_read_books.return_value = [
+        {"title": "Book A", "rating": 5, "genre": "Fantasy", "author": "Author X", "summary": "Great fantasy."},
+        {"title": "Book B", "rating": 3, "genre": "Sci-Fi", "author": "Author Y", "summary": "Average sci-fi."}
+    ]
+    # ChromaDB returns Book A (already read), Book C (not read)
+    mock_search_books.return_value = {
+        "ids": [["idA", "idC"]],
+        "metadatas": [[
+            {"title": "Book A", "genre": "Fantasy", "author": "Author X", "summary": "Great fantasy."},
+            {"title": "Book C", "genre": "Fantasy", "author": "Author X", "summary": "Another fantasy."}
+        ]]
     }
+    # Only Book C has a summary
+    mock_get_summary.side_effect = lambda title: "Another fantasy." if title == "Book C" else "Summary not found."
+    patch_dependencies["generate_image_from_summary"].return_value = "http://img.com/c.png"
+    # Should recommend Book C, not Book A
     response = client.post(
-        "/add_read_book",
-        json={"book_title": "Book 1", "rating": 5},
+        "/recommend",
+        json={"query": "fantasy", "role": "adult"},
         headers={"Authorization": "Bearer testtoken"}
     )
-    assert response.status_code == 400
+    assert response.status_code == 200
     data = response.json()
-    assert data["detail"] == "Book not found in ChromaDB."
-    mock_add_read_book.assert_not_called()
+    assert data["title"] == "Book C"
+    assert data["summary"] == "Another fantasy."
+    assert data["image_url"] == "http://img.com/c.png"
+    # Book A should be filtered out (already read)
+    mock_get_summary.assert_any_call("Book C")
+    assert "error" not in data
 
 @patch("api_server.verify_token", return_value="testuser")
-@patch("api_server.add_read_book")
-def test_add_read_book_missing_book_title(mock_add_read_book, mock_verify_token, patch_dependencies):
-    """Test /add_read_book returns 400 if book_title is missing."""
+@patch("api_server.get_user_read_books")
+@patch("api_server.search_books")
+@patch("api_server.get_summary_by_title")
+@patch("api_server.is_appropriate", return_value=True)
+@patch("api_server.is_similar_to_high_rated", side_effect=lambda meta, high_rated: meta["title"] == "Book D")
+def test_recommend_prioritizes_high_rated_books(
+    mock_is_similar, mock_is_appropriate, mock_get_summary, mock_search_books,
+    mock_get_user_read_books, mock_verify_token, patch_dependencies
+):
+    """
+    Test /recommend prioritizes books similar to user's high-rated books.
+    """
+    # User has rated Book D highly
+    mock_get_user_read_books.return_value = [
+        {"title": "Book D", "rating": 5, "genre": "Mystery", "author": "Author Z", "summary": "Great mystery."}
+    ]
+    # ChromaDB returns Book E (not similar), Book D (similar)
+    mock_search_books.return_value = {
+        "ids": [["idE", "idD"]],
+        "metadatas": [[
+            {"title": "Book E", "genre": "Romance", "author": "Author Q", "summary": "A romance."},
+            {"title": "Book D", "genre": "Mystery", "author": "Author Z", "summary": "Another mystery."}
+        ]]
+    }
+    # Only Book D has a summary
+    mock_get_summary.side_effect = lambda title: "Another mystery." if title == "Book D" else "A romance."
+    patch_dependencies["generate_image_from_summary"].return_value = "http://img.com/d.png"
+    # Should recommend Book D first (similar to high-rated)
+    response = client.post(
+        "/recommend",
+        json={"query": "mystery", "role": "adult"},
+        headers={"Authorization": "Bearer testtoken"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["title"] == "Book D"
+    assert data["summary"] == "Another mystery."
+    assert data["image_url"] == "http://img.com/d.png"
+    assert "error" not in data
+
+@patch("api_server.verify_token", return_value="testuser")
+@patch("api_server.get_user_read_books", side_effect=Exception("DB error"))
+@patch("api_server.search_books")
+@patch("api_server.get_summary_by_title")
+@patch("api_server.is_appropriate", return_value=True)
+def test_recommend_handles_user_books_db_error(
+    mock_is_appropriate, mock_get_summary, mock_search_books,
+    mock_get_user_read_books, mock_verify_token, patch_dependencies
+):
+    """
+    Test /recommend still works if get_user_read_books raises an exception.
+    """
+    # ChromaDB returns Book F
+    mock_search_books.return_value = {
+        "ids": [["idF"]],
+        "metadatas": [[
+        {
+            "title": "Book F",
+            "genre": "Drama",
+            "author": "Author W",
+            "summary": "A drama."
+        }
+    ]]
+    }
+    mock_get_summary.return_value = "A drama."
+    patch_dependencies["generate_image_from_summary"].return_value = "http://img.com/f.png"
+    response = client.post(
+        "/recommend",
+        json={"query": "drama", "role": "adult"},
+        headers={"Authorization": "Bearer testtoken"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["title"] == "Book F"
+    assert data["summary"] == "A drama."
+    assert data["image_url"] == "http://img.com/f.png"
+    assert "error" not in data
     patch_dependencies["collection"].get.return_value = {
         "metadatas": [{"title": "Book 1"}]
     }

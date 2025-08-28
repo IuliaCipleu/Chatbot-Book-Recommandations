@@ -2,8 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, fireEvent, waitFor } from "@testing-library/react";
 import LoginRegisterPage from "../components/LoginRegisterPage";
 
-// filepath: frontend/src/components/LoginRegisterPage.test.jsx
-
 // Helper to mock localStorage
 function mockLocalStorage() {
   let store = {};
@@ -40,13 +38,18 @@ describe("LoginRegisterPage", () => {
       })
     });
 
-    const { getByLabelText, getByRole } = render(
+    const { getByLabelText, getAllByRole } = render(
       <LoginRegisterPage onLogin={onLogin} onShowRegister={onShowRegister} />
     );
 
     fireEvent.change(getByLabelText(/Username or Email/i), { target: { value: "alice" } });
     fireEvent.change(getByLabelText(/Password/i), { target: { value: "Password123!" } });
-    fireEvent.click(getByRole("button", { name: /Login/i }));
+
+    // Find the submit button by its type and text
+    const loginButton = getAllByRole("button", { name: /Login/i }).find(
+      btn => btn.type === "submit"
+    );
+    fireEvent.click(loginButton);
 
     await waitFor(() => {
       expect(onLogin).toHaveBeenCalled();

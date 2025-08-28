@@ -141,7 +141,7 @@ After installation, verify by running `ffmpeg -version` in your terminal.
   cd frontend
   npm test
   ```
-
+![alt text](image.png)
 ---
 
 ## License
