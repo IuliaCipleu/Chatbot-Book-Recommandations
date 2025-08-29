@@ -15,6 +15,11 @@ An AI-powered book recommendation system using OpenAI, ChromaDB (RAG), and the C
 - Content filtering and prompt sanitization
 - CLI and React web frontend
 - Robust test coverage
+![alt text](screenshots/image-3.png)
+![alt text](screenshots/image-4.png)
+![alt text](screenshots/image-5.png)
+![alt text](screenshots/image-6.png)
+![alt text](screenshots/image-7.png)
 
 ---
 

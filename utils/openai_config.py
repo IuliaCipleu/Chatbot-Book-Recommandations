@@ -16,10 +16,10 @@ def load_openai_key():
         ValueError: If the 'OPENAI_API_KEY' environment variable is not set or invalid.
     """
     env_key = os.getenv("OPENAI_API_KEY")
-    print(f"OPENAI_API_KEY from environment: {env_key}")
+    # print(f"OPENAI_API_KEY from environment: {env_key}")
     load_dotenv(override=True)
     dotenv_key = os.environ.get("OPENAI_API_KEY")
-    print(f"OPENAI_API_KEY from .env after load_dotenv: {dotenv_key}")
+    # print(f"OPENAI_API_KEY from .env after load_dotenv: {dotenv_key}")
     api_key = dotenv_key
     if not api_key or not api_key.startswith("sk-"):
         raise ValueError("OPENAI_API_KEY not set or invalid in environment or .env file.")

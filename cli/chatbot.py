@@ -78,7 +78,10 @@ def main():
         if language == "romanian":
             prompt = "Ce fel de carte cauți? (scrie 'exit' pentru a ieși): "
 
-        use_voice = input("Do you want to use voice input? (yes/no): ").strip().lower() == "yes"
+        use_voice = input(
+                "Do you want to use voice input? (yes/no): " if language == "english"
+                else "Vrei să folosești input vocal? (da/nu): "
+            ).strip().lower() in ["yes", "da"]
 
         if use_voice:
             lang_code = "ro" if language == "romanian" else "en"
