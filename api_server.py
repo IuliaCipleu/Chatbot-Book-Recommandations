@@ -274,9 +274,26 @@ async def recommend(
     query = data.get("query")
     role = data.get("role")
     language = data.get("language", "english")
+    print("Language:", language)
+    query_for_check = query
+    if language == "romanian" and query:
+        async with httpx.AsyncClient() as async_httpx_client:
+            resp = await async_httpx_client.post(
+                "http://localhost:8000/translate",
+                json={"text": query, "target_lang": "english"}
+            )
+            query_for_check = resp.json().get("translated", query)
 
-    is_related, msg = is_book_related(query or "")
+    is_related, msg = is_book_related(query_for_check or "")
     if not is_related:
+        # If error and language is Romanian, translate error message
+        if language == "romanian":
+            async with httpx.AsyncClient() as async_httpx_client:
+                resp = await async_httpx_client.post(
+                    "http://localhost:8000/translate",
+                    json={"text": msg, "target_lang": "romanian"}
+                )
+                msg = resp.json().get("translated", msg)
         return {"error": msg}
 
     read_titles = set()

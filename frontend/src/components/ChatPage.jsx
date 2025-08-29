@@ -64,7 +64,7 @@ function ChatPage({ onLogout }) {
         body: JSON.stringify({
           query: userInput,
           role: "adult",
-          language: "english", // or whatever is needed
+          language,
         }),
       });
       const data = await res.json();

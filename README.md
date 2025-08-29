@@ -19,6 +19,7 @@ An AI-powered book recommendation system using OpenAI, ChromaDB (RAG), and the C
 ![alt text](screenshots/image-4.png)
 ![alt text](screenshots/image-5.png)
 ![alt text](screenshots/image-6.png)
+![alt text](screenshots/image-8.png)
 ![alt text](screenshots/image-7.png)
 
 ---
